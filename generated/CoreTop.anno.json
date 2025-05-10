@@ -1,0 +1,18 @@
+[
+  {
+    "class":"firrtl.EmitCircuitAnnotation",
+    "emitter":"firrtl.VerilogEmitter"
+  },
+  {
+    "class":"firrtl.transforms.BlackBoxTargetDirAnno",
+    "targetDir":"generated"
+  },
+  {
+    "class":"firrtl.transforms.CombinationalPath",
+    "sink":"~CoreTop|CoreTop>io_Instr_PreIfInstr_inst_sram_en",
+    "sources":[
+      "~CoreTop|CoreTop>io_Axi_ExeData_data_addr_ok",
+      "~CoreTop|CoreTop>io_Axi_DataMem_data_ok"
+    ]
+  }
+]
