@@ -3341,19 +3341,31 @@ module AxiMasterAxi(
   output        io_Cpu_DataMem_data_addr_ok,
   output [31:0] io_AR_ArAddr,
   output        io_AR_ArValid,
+  input         io_AR_ArReady,
   input  [31:0] io_R_RData,
   input         io_R_RLast,
   input         io_R_RValid,
   output [31:0] io_AW_AwAddr,
-  output [2:0]  io_AW_Awize,
+  output [1:0]  io_AW_AwSize,
   output        io_AW_AwValid,
+  input         io_AW_AwReady,
   output [31:0] io_W_WData,
   output        io_W_WLast,
   output        io_W_WValid,
   input         io_B_Bvalid,
   output        io_DeBugAddrOk,
   output        io_DeBugDataOk,
-  output [31:0] io_DeBugRData
+  output [31:0] io_DeBugRData,
+  output [2:0]  io_DebugRegState,
+  output [31:0] io_DebugArAddr,
+  output [1:0]  io_DebugArsize,
+  output        io_DebugArValid,
+  output [31:0] io_DebugAwAddr,
+  output [1:0]  io_DebugAwsize,
+  output        io_DebugAwValid,
+  output [31:0] io_DebugWData,
+  output        io_DebugWLast,
+  output        io_DebugWValid
 );
 `ifdef RANDOMIZE_REG_INIT
   reg [31:0] _RAND_0;
@@ -3368,165 +3380,227 @@ module AxiMasterAxi(
   reg [31:0] _RAND_9;
   reg [31:0] _RAND_10;
   reg [31:0] _RAND_11;
+  reg [31:0] _RAND_12;
 `endif // RANDOMIZE_REG_INIT
-  reg [2:0] RegState; // @[SramAxi.scala 101:26]
-  reg [31:0] ArAddr; // @[SramAxi.scala 102:26]
-  reg  ArValid; // @[SramAxi.scala 104:26]
-  reg [31:0] AwAddr; // @[SramAxi.scala 106:26]
-  reg [1:0] Awsize; // @[SramAxi.scala 107:27]
-  reg  AwValid; // @[SramAxi.scala 108:26]
-  reg [31:0] WData; // @[SramAxi.scala 110:26]
-  reg  WLast; // @[SramAxi.scala 111:26]
-  reg  WValid; // @[SramAxi.scala 112:26]
-  reg  AddrOk; // @[SramAxi.scala 114:26]
-  reg  DataOk; // @[SramAxi.scala 115:26]
-  reg [31:0] RData; // @[SramAxi.scala 116:26]
-  wire  _T_1 = io_Cpu_ExeData_data_sram_en & io_Cpu_ExeData_data_sram_wen; // @[SramAxi.scala 126:20]
-  wire  _T_3 = io_Cpu_ExeData_data_sram_en & ~io_Cpu_ExeData_data_sram_wen; // @[SramAxi.scala 135:26]
-  wire [2:0] _GEN_18 = io_R_RLast ? 3'h0 : RegState; // @[SramAxi.scala 185:18 186:18 101:26]
-  wire [31:0] _GEN_20 = io_R_RValid ? io_R_RData : 32'h0; // @[SramAxi.scala 188:19 190:16 193:16]
-  wire [2:0] _GEN_21 = 3'h4 == RegState ? _GEN_18 : RegState; // @[SramAxi.scala 119:19 101:26]
-  wire  _GEN_22 = 3'h4 == RegState ? io_R_RValid : DataOk; // @[SramAxi.scala 119:19 115:26]
-  wire [31:0] _GEN_23 = 3'h4 == RegState ? _GEN_20 : RData; // @[SramAxi.scala 119:19 116:26]
-  wire  _GEN_24 = 3'h2 == RegState | AddrOk; // @[SramAxi.scala 119:19 176:15 114:26]
-  wire  _GEN_26 = 3'h2 == RegState | WLast; // @[SramAxi.scala 119:19 178:15 111:26]
-  wire  _GEN_27 = 3'h2 == RegState | WValid; // @[SramAxi.scala 119:19 179:15 112:26]
-  assign io_Cpu_DataMem_data_sram_rdata = RData; // @[SramAxi.scala 232:33]
-  assign io_Cpu_DataMem_data_ok = DataOk; // @[SramAxi.scala 231:33]
-  assign io_Cpu_DataMem_data_addr_ok = AddrOk; // @[SramAxi.scala 230:33]
-  assign io_AR_ArAddr = ArAddr; // @[SramAxi.scala 202:16]
-  assign io_AR_ArValid = ArValid; // @[SramAxi.scala 209:16]
-  assign io_AW_AwAddr = AwAddr; // @[SramAxi.scala 212:16]
-  assign io_AW_Awize = {{1'd0}, Awsize}; // @[SramAxi.scala 214:16]
-  assign io_AW_AwValid = AwValid; // @[SramAxi.scala 219:16]
-  assign io_W_WData = WData; // @[SramAxi.scala 222:16]
-  assign io_W_WLast = WLast; // @[SramAxi.scala 224:16]
-  assign io_W_WValid = WValid; // @[SramAxi.scala 225:16]
-  assign io_DeBugAddrOk = AddrOk; // @[SramAxi.scala 233:16]
-  assign io_DeBugDataOk = DataOk; // @[SramAxi.scala 234:16]
-  assign io_DeBugRData = RData; // @[SramAxi.scala 235:16]
+  reg [2:0] RegState; // @[SramAxi.scala 113:26]
+  reg [31:0] ArAddr; // @[SramAxi.scala 114:26]
+  reg [1:0] Arsize; // @[SramAxi.scala 115:26]
+  reg  ArValid; // @[SramAxi.scala 116:26]
+  reg [31:0] AwAddr; // @[SramAxi.scala 118:26]
+  reg [1:0] Awsize; // @[SramAxi.scala 119:26]
+  reg  AwValid; // @[SramAxi.scala 120:26]
+  reg [31:0] WData; // @[SramAxi.scala 122:26]
+  reg  WLast; // @[SramAxi.scala 123:26]
+  reg  WValid; // @[SramAxi.scala 124:26]
+  reg  AddrOk; // @[SramAxi.scala 126:26]
+  reg  DataOk; // @[SramAxi.scala 127:26]
+  reg [31:0] RData; // @[SramAxi.scala 128:26]
+  wire  _T_1 = io_Cpu_ExeData_data_sram_en & io_Cpu_ExeData_data_sram_wen; // @[SramAxi.scala 138:20]
+  wire  _T_3 = io_Cpu_ExeData_data_sram_en & ~io_Cpu_ExeData_data_sram_wen; // @[SramAxi.scala 147:26]
+  wire [2:0] _GEN_15 = io_B_Bvalid ? 3'h3 : 3'h2; // @[SramAxi.scala 180:17 181:16 188:16]
+  wire [31:0] _GEN_16 = io_B_Bvalid ? 32'h0 : AwAddr; // @[SramAxi.scala 180:17 182:16 118:26]
+  wire [1:0] _GEN_17 = io_B_Bvalid ? 2'h0 : Awsize; // @[SramAxi.scala 180:17 183:16 119:26]
+  wire  _GEN_18 = io_B_Bvalid ? 1'h0 : AwValid; // @[SramAxi.scala 180:17 184:16 120:26]
+  wire [2:0] _GEN_19 = io_AR_ArReady ? 3'h5 : 3'h4; // @[SramAxi.scala 203:18 204:16 210:16]
+  wire [31:0] _GEN_20 = io_AR_ArReady ? 32'h0 : ArAddr; // @[SramAxi.scala 203:18 205:16 114:26]
+  wire [1:0] _GEN_21 = io_AR_ArReady ? 2'h0 : Arsize; // @[SramAxi.scala 203:18 206:16 115:26]
+  wire  _GEN_22 = io_AR_ArReady ? 1'h0 : ArValid; // @[SramAxi.scala 203:18 207:16 116:26]
+  wire [2:0] _GEN_23 = io_R_RLast ? 3'h0 : RegState; // @[SramAxi.scala 217:18 218:18 113:26]
+  wire [31:0] _GEN_25 = io_R_RValid ? io_R_RData : 32'h0; // @[SramAxi.scala 220:19 222:16 225:16]
+  wire [2:0] _GEN_26 = 3'h5 == RegState ? _GEN_23 : RegState; // @[SramAxi.scala 131:19 113:26]
+  wire  _GEN_27 = 3'h5 == RegState ? io_R_RValid : DataOk; // @[SramAxi.scala 131:19 127:26]
+  wire [31:0] _GEN_28 = 3'h5 == RegState ? _GEN_25 : RData; // @[SramAxi.scala 131:19 128:26]
+  wire [2:0] _GEN_29 = 3'h4 == RegState ? _GEN_19 : _GEN_26; // @[SramAxi.scala 131:19]
+  wire [31:0] _GEN_30 = 3'h4 == RegState ? _GEN_20 : ArAddr; // @[SramAxi.scala 131:19 114:26]
+  wire [1:0] _GEN_31 = 3'h4 == RegState ? _GEN_21 : Arsize; // @[SramAxi.scala 131:19 115:26]
+  wire  _GEN_32 = 3'h4 == RegState ? _GEN_22 : ArValid; // @[SramAxi.scala 131:19 116:26]
+  wire  _GEN_33 = 3'h4 == RegState ? DataOk : _GEN_27; // @[SramAxi.scala 131:19 127:26]
+  wire [31:0] _GEN_34 = 3'h4 == RegState ? RData : _GEN_28; // @[SramAxi.scala 131:19 128:26]
+  wire  _GEN_35 = 3'h3 == RegState | AddrOk; // @[SramAxi.scala 131:19 196:15 126:26]
+  wire [31:0] _GEN_36 = 3'h3 == RegState ? io_Cpu_ExeData_data_sram_wdata : WData; // @[SramAxi.scala 131:19 197:15 122:26]
+  wire  _GEN_37 = 3'h3 == RegState | WLast; // @[SramAxi.scala 131:19 198:15 123:26]
+  wire  _GEN_38 = 3'h3 == RegState | WValid; // @[SramAxi.scala 131:19 199:15 124:26]
+  wire [2:0] _GEN_39 = 3'h3 == RegState ? 3'h0 : _GEN_29; // @[SramAxi.scala 131:19 200:15]
+  wire [31:0] _GEN_40 = 3'h3 == RegState ? ArAddr : _GEN_30; // @[SramAxi.scala 131:19 114:26]
+  wire [1:0] _GEN_41 = 3'h3 == RegState ? Arsize : _GEN_31; // @[SramAxi.scala 131:19 115:26]
+  wire  _GEN_42 = 3'h3 == RegState ? ArValid : _GEN_32; // @[SramAxi.scala 131:19 116:26]
+  wire  _GEN_43 = 3'h3 == RegState ? DataOk : _GEN_33; // @[SramAxi.scala 131:19 127:26]
+  wire [31:0] _GEN_44 = 3'h3 == RegState ? RData : _GEN_34; // @[SramAxi.scala 131:19 128:26]
+  assign io_Cpu_DataMem_data_sram_rdata = RData; // @[SramAxi.scala 264:33]
+  assign io_Cpu_DataMem_data_ok = DataOk; // @[SramAxi.scala 263:33]
+  assign io_Cpu_DataMem_data_addr_ok = AddrOk; // @[SramAxi.scala 262:33]
+  assign io_AR_ArAddr = ArAddr; // @[SramAxi.scala 234:16]
+  assign io_AR_ArValid = ArValid; // @[SramAxi.scala 241:16]
+  assign io_AW_AwAddr = AwAddr; // @[SramAxi.scala 244:16]
+  assign io_AW_AwSize = Awsize; // @[SramAxi.scala 246:17]
+  assign io_AW_AwValid = AwValid; // @[SramAxi.scala 251:16]
+  assign io_W_WData = WData; // @[SramAxi.scala 254:16]
+  assign io_W_WLast = WLast; // @[SramAxi.scala 256:16]
+  assign io_W_WValid = WValid; // @[SramAxi.scala 257:16]
+  assign io_DeBugAddrOk = AddrOk; // @[SramAxi.scala 265:16]
+  assign io_DeBugDataOk = DataOk; // @[SramAxi.scala 266:16]
+  assign io_DeBugRData = RData; // @[SramAxi.scala 267:16]
+  assign io_DebugRegState = RegState; // @[SramAxi.scala 268:19]
+  assign io_DebugArAddr = ArAddr; // @[SramAxi.scala 269:19]
+  assign io_DebugArsize = Arsize; // @[SramAxi.scala 270:19]
+  assign io_DebugArValid = ArValid; // @[SramAxi.scala 271:19]
+  assign io_DebugAwAddr = AwAddr; // @[SramAxi.scala 272:19]
+  assign io_DebugAwsize = Awsize; // @[SramAxi.scala 273:19]
+  assign io_DebugAwValid = AwValid; // @[SramAxi.scala 274:19]
+  assign io_DebugWData = WData; // @[SramAxi.scala 275:19]
+  assign io_DebugWLast = WLast; // @[SramAxi.scala 276:19]
+  assign io_DebugWValid = WValid; // @[SramAxi.scala 277:19]
   always @(posedge clock) begin
-    if (reset) begin // @[SramAxi.scala 101:26]
-      RegState <= 3'h0; // @[SramAxi.scala 101:26]
-    end else if (3'h0 == RegState) begin // @[SramAxi.scala 119:19]
-      if (io_Cpu_ExeData_data_sram_en & io_Cpu_ExeData_data_sram_wen) begin // @[SramAxi.scala 126:34]
-        RegState <= 3'h1; // @[SramAxi.scala 127:18]
-      end else if (io_Cpu_ExeData_data_sram_en & ~io_Cpu_ExeData_data_sram_wen) begin // @[SramAxi.scala 135:41]
-        RegState <= 3'h4; // @[SramAxi.scala 136:18]
+    if (reset) begin // @[SramAxi.scala 113:26]
+      RegState <= 3'h0; // @[SramAxi.scala 113:26]
+    end else if (3'h0 == RegState) begin // @[SramAxi.scala 131:19]
+      if (io_Cpu_ExeData_data_sram_en & io_Cpu_ExeData_data_sram_wen) begin // @[SramAxi.scala 138:34]
+        RegState <= 3'h1; // @[SramAxi.scala 139:18]
+      end else if (io_Cpu_ExeData_data_sram_en & ~io_Cpu_ExeData_data_sram_wen) begin // @[SramAxi.scala 147:41]
+        RegState <= 3'h4; // @[SramAxi.scala 148:18]
       end else begin
-        RegState <= 3'h0; // @[SramAxi.scala 145:18]
+        RegState <= 3'h0; // @[SramAxi.scala 157:18]
       end
-    end else if (3'h1 == RegState) begin // @[SramAxi.scala 119:19]
-      if (io_B_Bvalid) begin // @[SramAxi.scala 160:17]
-        RegState <= 3'h2; // @[SramAxi.scala 161:16]
+    end else if (3'h1 == RegState) begin // @[SramAxi.scala 131:19]
+      if (io_AW_AwReady) begin // @[SramAxi.scala 171:18]
+        RegState <= 3'h2; // @[SramAxi.scala 172:16]
       end else begin
-        RegState <= 3'h1; // @[SramAxi.scala 168:16]
+        RegState <= 3'h1; // @[SramAxi.scala 175:16]
       end
-    end else if (3'h2 == RegState) begin // @[SramAxi.scala 119:19]
-      RegState <= 3'h0; // @[SramAxi.scala 180:15]
+    end else if (3'h2 == RegState) begin // @[SramAxi.scala 131:19]
+      RegState <= _GEN_15;
     end else begin
-      RegState <= _GEN_21;
-    end
-    if (reset) begin // @[SramAxi.scala 102:26]
-      ArAddr <= 32'h0; // @[SramAxi.scala 102:26]
-    end else if (3'h0 == RegState) begin // @[SramAxi.scala 119:19]
-      if (io_Cpu_ExeData_data_sram_en & io_Cpu_ExeData_data_sram_wen) begin // @[SramAxi.scala 126:34]
-        ArAddr <= 32'h0; // @[SramAxi.scala 131:18]
-      end else if (io_Cpu_ExeData_data_sram_en & ~io_Cpu_ExeData_data_sram_wen) begin // @[SramAxi.scala 135:41]
-        ArAddr <= io_Cpu_ExeData_data_sram_addr; // @[SramAxi.scala 137:18]
-      end else begin
-        ArAddr <= 32'h0; // @[SramAxi.scala 149:18]
-      end
-    end
-    if (reset) begin // @[SramAxi.scala 104:26]
-      ArValid <= 1'h0; // @[SramAxi.scala 104:26]
-    end else if (3'h0 == RegState) begin // @[SramAxi.scala 119:19]
-      if (io_Cpu_ExeData_data_sram_en & io_Cpu_ExeData_data_sram_wen) begin // @[SramAxi.scala 126:34]
-        ArValid <= 1'h0; // @[SramAxi.scala 133:18]
-      end else begin
-        ArValid <= _T_3;
-      end
-    end
-    if (reset) begin // @[SramAxi.scala 106:26]
-      AwAddr <= 32'h0; // @[SramAxi.scala 106:26]
-    end else if (3'h0 == RegState) begin // @[SramAxi.scala 119:19]
-      if (io_Cpu_ExeData_data_sram_en & io_Cpu_ExeData_data_sram_wen) begin // @[SramAxi.scala 126:34]
-        AwAddr <= io_Cpu_ExeData_data_sram_addr; // @[SramAxi.scala 128:18]
-      end else begin
-        AwAddr <= 32'h0;
-      end
-    end else if (3'h1 == RegState) begin // @[SramAxi.scala 119:19]
-      if (io_B_Bvalid) begin // @[SramAxi.scala 160:17]
-        AwAddr <= 32'h0; // @[SramAxi.scala 162:16]
-      end
-    end
-    if (reset) begin // @[SramAxi.scala 107:27]
-      Awsize <= 2'h0; // @[SramAxi.scala 107:27]
-    end else if (3'h0 == RegState) begin // @[SramAxi.scala 119:19]
-      if (io_Cpu_ExeData_data_sram_en & io_Cpu_ExeData_data_sram_wen) begin // @[SramAxi.scala 126:34]
-        Awsize <= io_Cpu_ExeData_data_size; // @[SramAxi.scala 129:19]
-      end else begin
-        Awsize <= 2'h0;
-      end
-    end else if (3'h1 == RegState) begin // @[SramAxi.scala 119:19]
-      if (io_B_Bvalid) begin // @[SramAxi.scala 160:17]
-        Awsize <= 2'h0; // @[SramAxi.scala 163:16]
-      end
-    end
-    if (reset) begin // @[SramAxi.scala 108:26]
-      AwValid <= 1'h0; // @[SramAxi.scala 108:26]
-    end else if (3'h0 == RegState) begin // @[SramAxi.scala 119:19]
-      AwValid <= _T_1;
-    end else if (3'h1 == RegState) begin // @[SramAxi.scala 119:19]
-      if (io_B_Bvalid) begin // @[SramAxi.scala 160:17]
-        AwValid <= 1'h0; // @[SramAxi.scala 164:16]
-      end
-    end
-    if (reset) begin // @[SramAxi.scala 110:26]
-      WData <= 32'h0; // @[SramAxi.scala 110:26]
-    end else if (3'h0 == RegState) begin // @[SramAxi.scala 119:19]
-      WData <= 32'h0; // @[SramAxi.scala 123:14]
-    end else if (!(3'h1 == RegState)) begin // @[SramAxi.scala 119:19]
-      if (3'h2 == RegState) begin // @[SramAxi.scala 119:19]
-        WData <= io_Cpu_ExeData_data_sram_wdata; // @[SramAxi.scala 177:15]
-      end
-    end
-    if (reset) begin // @[SramAxi.scala 111:26]
-      WLast <= 1'h0; // @[SramAxi.scala 111:26]
-    end else if (3'h0 == RegState) begin // @[SramAxi.scala 119:19]
-      WLast <= 1'h0; // @[SramAxi.scala 124:14]
-    end else if (!(3'h1 == RegState)) begin // @[SramAxi.scala 119:19]
-      WLast <= _GEN_26;
-    end
-    if (reset) begin // @[SramAxi.scala 112:26]
-      WValid <= 1'h0; // @[SramAxi.scala 112:26]
-    end else if (3'h0 == RegState) begin // @[SramAxi.scala 119:19]
-      WValid <= 1'h0; // @[SramAxi.scala 125:14]
-    end else if (!(3'h1 == RegState)) begin // @[SramAxi.scala 119:19]
-      WValid <= _GEN_27;
+      RegState <= _GEN_39;
     end
     if (reset) begin // @[SramAxi.scala 114:26]
-      AddrOk <= 1'h0; // @[SramAxi.scala 114:26]
-    end else if (3'h0 == RegState) begin // @[SramAxi.scala 119:19]
-      AddrOk <= 1'h0; // @[SramAxi.scala 122:14]
-    end else if (!(3'h1 == RegState)) begin // @[SramAxi.scala 119:19]
-      AddrOk <= _GEN_24;
+      ArAddr <= 32'h0; // @[SramAxi.scala 114:26]
+    end else if (3'h0 == RegState) begin // @[SramAxi.scala 131:19]
+      if (io_Cpu_ExeData_data_sram_en & io_Cpu_ExeData_data_sram_wen) begin // @[SramAxi.scala 138:34]
+        ArAddr <= 32'h0; // @[SramAxi.scala 143:18]
+      end else if (io_Cpu_ExeData_data_sram_en & ~io_Cpu_ExeData_data_sram_wen) begin // @[SramAxi.scala 147:41]
+        ArAddr <= io_Cpu_ExeData_data_sram_addr; // @[SramAxi.scala 149:18]
+      end else begin
+        ArAddr <= 32'h0; // @[SramAxi.scala 161:18]
+      end
+    end else if (!(3'h1 == RegState)) begin // @[SramAxi.scala 131:19]
+      if (!(3'h2 == RegState)) begin // @[SramAxi.scala 131:19]
+        ArAddr <= _GEN_40;
+      end
     end
     if (reset) begin // @[SramAxi.scala 115:26]
-      DataOk <= 1'h0; // @[SramAxi.scala 115:26]
-    end else if (3'h0 == RegState) begin // @[SramAxi.scala 119:19]
-      DataOk <= 1'h0; // @[SramAxi.scala 121:14]
-    end else if (!(3'h1 == RegState)) begin // @[SramAxi.scala 119:19]
-      if (!(3'h2 == RegState)) begin // @[SramAxi.scala 119:19]
-        DataOk <= _GEN_22;
+      Arsize <= 2'h0; // @[SramAxi.scala 115:26]
+    end else if (3'h0 == RegState) begin // @[SramAxi.scala 131:19]
+      if (io_Cpu_ExeData_data_sram_en & io_Cpu_ExeData_data_sram_wen) begin // @[SramAxi.scala 138:34]
+        Arsize <= 2'h0; // @[SramAxi.scala 144:18]
+      end else if (io_Cpu_ExeData_data_sram_en & ~io_Cpu_ExeData_data_sram_wen) begin // @[SramAxi.scala 147:41]
+        Arsize <= io_Cpu_ExeData_data_size; // @[SramAxi.scala 150:18]
+      end else begin
+        Arsize <= 2'h0; // @[SramAxi.scala 162:18]
+      end
+    end else if (!(3'h1 == RegState)) begin // @[SramAxi.scala 131:19]
+      if (!(3'h2 == RegState)) begin // @[SramAxi.scala 131:19]
+        Arsize <= _GEN_41;
       end
     end
     if (reset) begin // @[SramAxi.scala 116:26]
-      RData <= 32'h0; // @[SramAxi.scala 116:26]
-    end else if (!(3'h0 == RegState)) begin // @[SramAxi.scala 119:19]
-      if (!(3'h1 == RegState)) begin // @[SramAxi.scala 119:19]
-        if (!(3'h2 == RegState)) begin // @[SramAxi.scala 119:19]
-          RData <= _GEN_23;
+      ArValid <= 1'h0; // @[SramAxi.scala 116:26]
+    end else if (3'h0 == RegState) begin // @[SramAxi.scala 131:19]
+      if (io_Cpu_ExeData_data_sram_en & io_Cpu_ExeData_data_sram_wen) begin // @[SramAxi.scala 138:34]
+        ArValid <= 1'h0; // @[SramAxi.scala 145:18]
+      end else begin
+        ArValid <= _T_3;
+      end
+    end else if (!(3'h1 == RegState)) begin // @[SramAxi.scala 131:19]
+      if (!(3'h2 == RegState)) begin // @[SramAxi.scala 131:19]
+        ArValid <= _GEN_42;
+      end
+    end
+    if (reset) begin // @[SramAxi.scala 118:26]
+      AwAddr <= 32'h0; // @[SramAxi.scala 118:26]
+    end else if (3'h0 == RegState) begin // @[SramAxi.scala 131:19]
+      if (io_Cpu_ExeData_data_sram_en & io_Cpu_ExeData_data_sram_wen) begin // @[SramAxi.scala 138:34]
+        AwAddr <= io_Cpu_ExeData_data_sram_addr; // @[SramAxi.scala 140:18]
+      end else begin
+        AwAddr <= 32'h0;
+      end
+    end else if (!(3'h1 == RegState)) begin // @[SramAxi.scala 131:19]
+      if (3'h2 == RegState) begin // @[SramAxi.scala 131:19]
+        AwAddr <= _GEN_16;
+      end
+    end
+    if (reset) begin // @[SramAxi.scala 119:26]
+      Awsize <= 2'h0; // @[SramAxi.scala 119:26]
+    end else if (3'h0 == RegState) begin // @[SramAxi.scala 131:19]
+      if (io_Cpu_ExeData_data_sram_en & io_Cpu_ExeData_data_sram_wen) begin // @[SramAxi.scala 138:34]
+        Awsize <= io_Cpu_ExeData_data_size; // @[SramAxi.scala 141:19]
+      end else begin
+        Awsize <= 2'h0;
+      end
+    end else if (!(3'h1 == RegState)) begin // @[SramAxi.scala 131:19]
+      if (3'h2 == RegState) begin // @[SramAxi.scala 131:19]
+        Awsize <= _GEN_17;
+      end
+    end
+    if (reset) begin // @[SramAxi.scala 120:26]
+      AwValid <= 1'h0; // @[SramAxi.scala 120:26]
+    end else if (3'h0 == RegState) begin // @[SramAxi.scala 131:19]
+      AwValid <= _T_1;
+    end else if (!(3'h1 == RegState)) begin // @[SramAxi.scala 131:19]
+      if (3'h2 == RegState) begin // @[SramAxi.scala 131:19]
+        AwValid <= _GEN_18;
+      end
+    end
+    if (reset) begin // @[SramAxi.scala 122:26]
+      WData <= 32'h0; // @[SramAxi.scala 122:26]
+    end else if (3'h0 == RegState) begin // @[SramAxi.scala 131:19]
+      WData <= 32'h0; // @[SramAxi.scala 135:14]
+    end else if (!(3'h1 == RegState)) begin // @[SramAxi.scala 131:19]
+      if (!(3'h2 == RegState)) begin // @[SramAxi.scala 131:19]
+        WData <= _GEN_36;
+      end
+    end
+    if (reset) begin // @[SramAxi.scala 123:26]
+      WLast <= 1'h0; // @[SramAxi.scala 123:26]
+    end else if (3'h0 == RegState) begin // @[SramAxi.scala 131:19]
+      WLast <= 1'h0; // @[SramAxi.scala 136:14]
+    end else if (!(3'h1 == RegState)) begin // @[SramAxi.scala 131:19]
+      if (!(3'h2 == RegState)) begin // @[SramAxi.scala 131:19]
+        WLast <= _GEN_37;
+      end
+    end
+    if (reset) begin // @[SramAxi.scala 124:26]
+      WValid <= 1'h0; // @[SramAxi.scala 124:26]
+    end else if (3'h0 == RegState) begin // @[SramAxi.scala 131:19]
+      WValid <= 1'h0; // @[SramAxi.scala 137:14]
+    end else if (!(3'h1 == RegState)) begin // @[SramAxi.scala 131:19]
+      if (!(3'h2 == RegState)) begin // @[SramAxi.scala 131:19]
+        WValid <= _GEN_38;
+      end
+    end
+    if (reset) begin // @[SramAxi.scala 126:26]
+      AddrOk <= 1'h0; // @[SramAxi.scala 126:26]
+    end else if (3'h0 == RegState) begin // @[SramAxi.scala 131:19]
+      AddrOk <= 1'h0; // @[SramAxi.scala 134:14]
+    end else if (!(3'h1 == RegState)) begin // @[SramAxi.scala 131:19]
+      if (!(3'h2 == RegState)) begin // @[SramAxi.scala 131:19]
+        AddrOk <= _GEN_35;
+      end
+    end
+    if (reset) begin // @[SramAxi.scala 127:26]
+      DataOk <= 1'h0; // @[SramAxi.scala 127:26]
+    end else if (3'h0 == RegState) begin // @[SramAxi.scala 131:19]
+      DataOk <= 1'h0; // @[SramAxi.scala 133:14]
+    end else if (!(3'h1 == RegState)) begin // @[SramAxi.scala 131:19]
+      if (!(3'h2 == RegState)) begin // @[SramAxi.scala 131:19]
+        DataOk <= _GEN_43;
+      end
+    end
+    if (reset) begin // @[SramAxi.scala 128:26]
+      RData <= 32'h0; // @[SramAxi.scala 128:26]
+    end else if (!(3'h0 == RegState)) begin // @[SramAxi.scala 131:19]
+      if (!(3'h1 == RegState)) begin // @[SramAxi.scala 131:19]
+        if (!(3'h2 == RegState)) begin // @[SramAxi.scala 131:19]
+          RData <= _GEN_44;
         end
       end
     end
@@ -3572,25 +3646,542 @@ initial begin
   _RAND_1 = {1{`RANDOM}};
   ArAddr = _RAND_1[31:0];
   _RAND_2 = {1{`RANDOM}};
-  ArValid = _RAND_2[0:0];
+  Arsize = _RAND_2[1:0];
   _RAND_3 = {1{`RANDOM}};
-  AwAddr = _RAND_3[31:0];
+  ArValid = _RAND_3[0:0];
   _RAND_4 = {1{`RANDOM}};
-  Awsize = _RAND_4[1:0];
+  AwAddr = _RAND_4[31:0];
   _RAND_5 = {1{`RANDOM}};
-  AwValid = _RAND_5[0:0];
+  Awsize = _RAND_5[1:0];
   _RAND_6 = {1{`RANDOM}};
-  WData = _RAND_6[31:0];
+  AwValid = _RAND_6[0:0];
   _RAND_7 = {1{`RANDOM}};
-  WLast = _RAND_7[0:0];
+  WData = _RAND_7[31:0];
   _RAND_8 = {1{`RANDOM}};
-  WValid = _RAND_8[0:0];
+  WLast = _RAND_8[0:0];
   _RAND_9 = {1{`RANDOM}};
-  AddrOk = _RAND_9[0:0];
+  WValid = _RAND_9[0:0];
   _RAND_10 = {1{`RANDOM}};
-  DataOk = _RAND_10[0:0];
+  AddrOk = _RAND_10[0:0];
   _RAND_11 = {1{`RANDOM}};
-  RData = _RAND_11[31:0];
+  DataOk = _RAND_11[0:0];
+  _RAND_12 = {1{`RANDOM}};
+  RData = _RAND_12[31:0];
+`endif // RANDOMIZE_REG_INIT
+  `endif // RANDOMIZE
+end // initial
+`ifdef FIRRTL_AFTER_INITIAL
+`FIRRTL_AFTER_INITIAL
+`endif
+`endif // SYNTHESIS
+endmodule
+module AxiMux(
+  input         clock,
+  input         reset,
+  input  [31:0] io_AxiMaster1_AR_ArAddr,
+  input         io_AxiMaster1_AR_ArValid,
+  output        io_AxiMaster1_AR_ArReady,
+  output [31:0] io_AxiMaster1_R_RData,
+  output        io_AxiMaster1_R_RLast,
+  output        io_AxiMaster1_R_RValid,
+  input  [31:0] io_AxiMaster1_AW_AwAddr,
+  input  [1:0]  io_AxiMaster1_AW_AwSize,
+  input         io_AxiMaster1_AW_AwValid,
+  output        io_AxiMaster1_AW_AwReady,
+  input  [31:0] io_AxiMaster1_W_WData,
+  input         io_AxiMaster1_W_WLast,
+  input         io_AxiMaster1_W_WValid,
+  output        io_AxiMaster1_B_Bvalid,
+  output [31:0] io_AxiSlave1_AR_ArAddr,
+  output        io_AxiSlave1_AR_ArValid,
+  input         io_AxiSlave1_AR_ArReady,
+  input  [31:0] io_AxiSlave1_R_RData,
+  input         io_AxiSlave1_R_RLast,
+  input         io_AxiSlave1_R_RValid,
+  output [31:0] io_AxiSlave1_AW_AwAddr,
+  output [1:0]  io_AxiSlave1_AW_AwSize,
+  output        io_AxiSlave1_AW_AwValid,
+  input         io_AxiSlave1_AW_AwReady,
+  output [31:0] io_AxiSlave1_W_WData,
+  output        io_AxiSlave1_W_WLast,
+  output        io_AxiSlave1_W_WValid,
+  input         io_AxiSlave1_B_Bvalid,
+  output        io_AxiSlave1_B_Bready,
+  output [31:0] io_AxiSlave2_AR_ArAddr,
+  output        io_AxiSlave2_AR_ArValid,
+  input         io_AxiSlave2_AR_ArReady,
+  input  [31:0] io_AxiSlave2_R_RData,
+  input         io_AxiSlave2_R_RLast,
+  input         io_AxiSlave2_R_RValid,
+  output [31:0] io_AxiSlave2_AW_AwAddr,
+  output        io_AxiSlave2_AW_AwValid,
+  input         io_AxiSlave2_AW_AwReady,
+  output [31:0] io_AxiSlave2_W_WData,
+  output        io_AxiSlave2_W_WLast,
+  output        io_AxiSlave2_W_WValid,
+  input         io_AxiSlave2_B_Bvalid,
+  output        io_AxiSlave2_B_Bready,
+  output [1:0]  io_DebugWriteState,
+  output [1:0]  io_DebugReadState
+);
+`ifdef RANDOMIZE_REG_INIT
+  reg [31:0] _RAND_0;
+  reg [31:0] _RAND_1;
+`endif // RANDOMIZE_REG_INIT
+  reg [1:0] WriteState; // @[AxiMux.scala 31:29]
+  reg [1:0] ReadState; // @[AxiMux.scala 32:29]
+  wire [1:0] _GEN_2 = io_AxiMaster1_W_WLast ? 2'h0 : WriteState; // @[AxiMux.scala 101:22 102:25 31:29]
+  wire [1:0] _GEN_9 = io_AxiSlave2_R_RLast ? 2'h0 : ReadState; // @[AxiMux.scala 133:23 134:24 32:29]
+  wire  _T_19 = WriteState == 2'h2; // @[AxiMux.scala 212:28]
+  wire [31:0] _GEN_14 = WriteState == 2'h2 ? io_AxiMaster1_AW_AwAddr : 32'h0; // @[AxiMux.scala 188:26 212:39 213:26]
+  wire  _GEN_21 = WriteState == 2'h2 & io_AxiMaster1_AW_AwValid; // @[AxiMux.scala 195:26 212:39 213:26]
+  wire  _GEN_22 = WriteState == 2'h2 & io_AxiSlave2_AW_AwReady; // @[AxiMux.scala 149:26 212:39 213:26]
+  wire [31:0] _GEN_24 = WriteState == 2'h2 ? io_AxiMaster1_W_WData : 32'h0; // @[AxiMux.scala 197:26 212:39 214:26]
+  wire  _GEN_26 = WriteState == 2'h2 & io_AxiMaster1_W_WLast; // @[AxiMux.scala 199:26 212:39 214:26]
+  wire  _GEN_27 = WriteState == 2'h2 & io_AxiMaster1_W_WValid; // @[AxiMux.scala 200:26 212:39 214:26]
+  wire  _GEN_31 = WriteState == 2'h2 & io_AxiSlave2_B_Bvalid; // @[AxiMux.scala 147:26 212:39 215:26]
+  wire [31:0] _GEN_69 = ReadState == 2'h2 ? io_AxiMaster1_AR_ArAddr : 32'h0; // @[AxiMux.scala 179:26 221:38 222:26]
+  wire  _GEN_76 = ReadState == 2'h2 & io_AxiMaster1_AR_ArValid; // @[AxiMux.scala 186:26 221:38 222:26]
+  wire  _GEN_77 = ReadState == 2'h2 & io_AxiSlave2_AR_ArReady; // @[AxiMux.scala 148:26 221:38 222:26]
+  wire [31:0] _GEN_79 = ReadState == 2'h2 ? io_AxiSlave2_R_RData : 32'h0; // @[AxiMux.scala 143:26 221:38 223:26]
+  wire  _GEN_81 = ReadState == 2'h2 & io_AxiSlave2_R_RLast; // @[AxiMux.scala 142:26 221:38 223:26]
+  wire  _GEN_82 = ReadState == 2'h2 & io_AxiSlave2_R_RValid; // @[AxiMux.scala 144:26 221:38 223:26]
+  assign io_AxiMaster1_AR_ArReady = ReadState == 2'h1 ? io_AxiSlave1_AR_ArReady : _GEN_77; // @[AxiMux.scala 218:32 219:26]
+  assign io_AxiMaster1_R_RData = ReadState == 2'h1 ? io_AxiSlave1_R_RData : _GEN_79; // @[AxiMux.scala 218:32 220:26]
+  assign io_AxiMaster1_R_RLast = ReadState == 2'h1 ? io_AxiSlave1_R_RLast : _GEN_81; // @[AxiMux.scala 218:32 220:26]
+  assign io_AxiMaster1_R_RValid = ReadState == 2'h1 ? io_AxiSlave1_R_RValid : _GEN_82; // @[AxiMux.scala 218:32 220:26]
+  assign io_AxiMaster1_AW_AwReady = WriteState == 2'h1 ? io_AxiSlave1_AW_AwReady : _GEN_22; // @[AxiMux.scala 207:33 208:26]
+  assign io_AxiMaster1_B_Bvalid = WriteState == 2'h1 ? io_AxiSlave1_B_Bvalid : _GEN_31; // @[AxiMux.scala 207:33 210:26]
+  assign io_AxiSlave1_AR_ArAddr = ReadState == 2'h1 ? io_AxiMaster1_AR_ArAddr : 32'h0; // @[AxiMux.scala 153:26 218:32 219:26]
+  assign io_AxiSlave1_AR_ArValid = ReadState == 2'h1 & io_AxiMaster1_AR_ArValid; // @[AxiMux.scala 160:26 218:32 219:26]
+  assign io_AxiSlave1_AW_AwAddr = WriteState == 2'h1 ? io_AxiMaster1_AW_AwAddr : 32'h0; // @[AxiMux.scala 162:26 207:33 208:26]
+  assign io_AxiSlave1_AW_AwSize = WriteState == 2'h1 ? io_AxiMaster1_AW_AwSize : 2'h0; // @[AxiMux.scala 164:26 207:33 208:26]
+  assign io_AxiSlave1_AW_AwValid = WriteState == 2'h1 & io_AxiMaster1_AW_AwValid; // @[AxiMux.scala 169:26 207:33 208:26]
+  assign io_AxiSlave1_W_WData = WriteState == 2'h1 ? io_AxiMaster1_W_WData : 32'h0; // @[AxiMux.scala 171:26 207:33 209:26]
+  assign io_AxiSlave1_W_WLast = WriteState == 2'h1 & io_AxiMaster1_W_WLast; // @[AxiMux.scala 173:26 207:33 209:26]
+  assign io_AxiSlave1_W_WValid = WriteState == 2'h1 & io_AxiMaster1_W_WValid; // @[AxiMux.scala 174:26 207:33 209:26]
+  assign io_AxiSlave1_B_Bready = WriteState == 2'h1; // @[AxiMux.scala 207:22]
+  assign io_AxiSlave2_AR_ArAddr = ReadState == 2'h1 ? 32'h0 : _GEN_69; // @[AxiMux.scala 179:26 218:32]
+  assign io_AxiSlave2_AR_ArValid = ReadState == 2'h1 ? 1'h0 : _GEN_76; // @[AxiMux.scala 186:26 218:32]
+  assign io_AxiSlave2_AW_AwAddr = WriteState == 2'h1 ? 32'h0 : _GEN_14; // @[AxiMux.scala 188:26 207:33]
+  assign io_AxiSlave2_AW_AwValid = WriteState == 2'h1 ? 1'h0 : _GEN_21; // @[AxiMux.scala 195:26 207:33]
+  assign io_AxiSlave2_W_WData = WriteState == 2'h1 ? 32'h0 : _GEN_24; // @[AxiMux.scala 197:26 207:33]
+  assign io_AxiSlave2_W_WLast = WriteState == 2'h1 ? 1'h0 : _GEN_26; // @[AxiMux.scala 199:26 207:33]
+  assign io_AxiSlave2_W_WValid = WriteState == 2'h1 ? 1'h0 : _GEN_27; // @[AxiMux.scala 200:26 207:33]
+  assign io_AxiSlave2_B_Bready = WriteState == 2'h1 ? 1'h0 : _T_19; // @[AxiMux.scala 202:26 207:33]
+  assign io_DebugWriteState = WriteState; // @[AxiMux.scala 226:25]
+  assign io_DebugReadState = ReadState; // @[AxiMux.scala 227:25]
+  always @(posedge clock) begin
+    if (reset) begin // @[AxiMux.scala 31:29]
+      WriteState <= 2'h0; // @[AxiMux.scala 31:29]
+    end else if (2'h0 == WriteState) begin // @[AxiMux.scala 89:23]
+      if (io_AxiMaster1_AW_AwValid & io_AxiMaster1_AW_AwAddr[31:28] == 4'h1) begin // @[AxiMux.scala 91:61]
+        WriteState <= 2'h1; // @[AxiMux.scala 92:26]
+      end else if (io_AxiMaster1_AW_AwValid & io_AxiMaster1_AW_AwAddr[31:28] == 4'h2) begin // @[AxiMux.scala 93:63]
+        WriteState <= 2'h2; // @[AxiMux.scala 94:26]
+      end else begin
+        WriteState <= 2'h0; // @[AxiMux.scala 96:26]
+      end
+    end else if (2'h1 == WriteState) begin // @[AxiMux.scala 89:23]
+      WriteState <= _GEN_2;
+    end else if (2'h2 == WriteState) begin // @[AxiMux.scala 89:23]
+      WriteState <= _GEN_2;
+    end
+    if (reset) begin // @[AxiMux.scala 32:29]
+      ReadState <= 2'h0; // @[AxiMux.scala 32:29]
+    end else if (2'h0 == ReadState) begin // @[AxiMux.scala 116:21]
+      if (io_AxiMaster1_AR_ArValid & io_AxiMaster1_AR_ArAddr[31:28] == 4'h1) begin // @[AxiMux.scala 118:61]
+        ReadState <= 2'h1; // @[AxiMux.scala 119:25]
+      end else if (io_AxiMaster1_AR_ArValid & io_AxiMaster1_AR_ArAddr[31:28] == 4'h2) begin // @[AxiMux.scala 120:63]
+        ReadState <= 2'h2; // @[AxiMux.scala 121:25]
+      end else begin
+        ReadState <= 2'h0; // @[AxiMux.scala 123:25]
+      end
+    end else if (2'h1 == ReadState) begin // @[AxiMux.scala 116:21]
+      if (io_AxiSlave1_R_RLast) begin // @[AxiMux.scala 128:23]
+        ReadState <= 2'h0; // @[AxiMux.scala 129:24]
+      end
+    end else if (2'h2 == ReadState) begin // @[AxiMux.scala 116:21]
+      ReadState <= _GEN_9;
+    end
+  end
+// Register and memory initialization
+`ifdef RANDOMIZE_GARBAGE_ASSIGN
+`define RANDOMIZE
+`endif
+`ifdef RANDOMIZE_INVALID_ASSIGN
+`define RANDOMIZE
+`endif
+`ifdef RANDOMIZE_REG_INIT
+`define RANDOMIZE
+`endif
+`ifdef RANDOMIZE_MEM_INIT
+`define RANDOMIZE
+`endif
+`ifndef RANDOM
+`define RANDOM $random
+`endif
+`ifdef RANDOMIZE_MEM_INIT
+  integer initvar;
+`endif
+`ifndef SYNTHESIS
+`ifdef FIRRTL_BEFORE_INITIAL
+`FIRRTL_BEFORE_INITIAL
+`endif
+initial begin
+  `ifdef RANDOMIZE
+    `ifdef INIT_RANDOM
+      `INIT_RANDOM
+    `endif
+    `ifndef VERILATOR
+      `ifdef RANDOMIZE_DELAY
+        #`RANDOMIZE_DELAY begin end
+      `else
+        #0.002 begin end
+      `endif
+    `endif
+`ifdef RANDOMIZE_REG_INIT
+  _RAND_0 = {1{`RANDOM}};
+  WriteState = _RAND_0[1:0];
+  _RAND_1 = {1{`RANDOM}};
+  ReadState = _RAND_1[1:0];
+`endif // RANDOMIZE_REG_INIT
+  `endif // RANDOMIZE
+end // initial
+`ifdef FIRRTL_AFTER_INITIAL
+`FIRRTL_AFTER_INITIAL
+`endif
+`endif // SYNTHESIS
+endmodule
+module AxiApb(
+  input         clock,
+  input         reset,
+  output [31:0] io_Apb_PAddr,
+  output        io_Apb_PWrite,
+  output        io_Apb_PSel,
+  output        io_Apb_PEnable,
+  output [31:0] io_Apb_PWData,
+  input  [31:0] io_Apb_PRData,
+  input         io_Apb_PReady,
+  input  [31:0] io_AR_ArAddr,
+  input         io_AR_ArValid,
+  output        io_AR_ArReady,
+  output [31:0] io_R_RData,
+  output        io_R_RLast,
+  output        io_R_RValid,
+  input  [31:0] io_AW_AwAddr,
+  input         io_AW_AwValid,
+  output        io_AW_AwReady,
+  input  [31:0] io_W_WData,
+  input         io_W_WLast,
+  input         io_W_WValid,
+  output        io_B_Bvalid,
+  input         io_B_Bready,
+  output [2:0]  io_DebugAxiState,
+  output [2:0]  io_DebugApbState,
+  output [31:0] io_DebugPAddr,
+  output        io_DebugPWrite,
+  output        io_DebugPSel,
+  output        io_DebugPEnable,
+  output [31:0] io_DebugPWData
+);
+`ifdef RANDOMIZE_REG_INIT
+  reg [31:0] _RAND_0;
+  reg [31:0] _RAND_1;
+  reg [31:0] _RAND_2;
+  reg [31:0] _RAND_3;
+  reg [31:0] _RAND_4;
+  reg [31:0] _RAND_5;
+  reg [31:0] _RAND_6;
+  reg [31:0] _RAND_7;
+`endif // RANDOMIZE_REG_INIT
+  reg [2:0] AxiState; // @[AxiApb.scala 73:26]
+  reg [2:0] ApbState; // @[AxiApb.scala 74:26]
+  reg  RValid; // @[AxiApb.scala 76:26]
+  reg  RLast; // @[AxiApb.scala 77:26]
+  reg  Bvalid; // @[AxiApb.scala 78:26]
+  reg [31:0] AxiRData; // @[AxiApb.scala 79:26]
+  reg [31:0] PAddr; // @[AxiApb.scala 81:26]
+  reg [31:0] PWData; // @[AxiApb.scala 85:26]
+  wire  _T_6 = AxiState == 3'h4; // @[AxiApb.scala 114:25]
+  wire [2:0] _GEN_2 = AxiState == 3'h4 | RLast ? 3'h0 : 3'h1; // @[AxiApb.scala 114:49 115:21 117:21]
+  wire [2:0] _GEN_3 = io_Apb_PReady ? _GEN_2 : 3'h2; // @[AxiApb.scala 113:17 120:16]
+  wire [31:0] _GEN_6 = 3'h0 == ApbState ? 32'h0 : PWData; // @[AxiApb.scala 88:19 93:14 85:26]
+  wire [2:0] _GEN_14 = io_W_WValid ? 3'h3 : 3'h2; // @[AxiApb.scala 163:27 164:20 166:20]
+  wire [2:0] _GEN_15 = io_W_WLast ? 3'h4 : _GEN_14; // @[AxiApb.scala 161:19 162:20]
+  wire [31:0] _GEN_16 = io_W_WValid ? io_W_WData : 32'h0; // @[AxiApb.scala 168:20 169:18 171:18]
+  wire [2:0] _GEN_17 = io_Apb_PReady ? 3'h2 : 3'h3; // @[AxiApb.scala 178:22 179:20 182:20]
+  wire [31:0] _GEN_18 = io_Apb_PReady ? 32'h0 : PWData; // @[AxiApb.scala 178:22 180:20 183:20]
+  wire [2:0] _GEN_19 = io_Apb_PReady ? 3'h0 : 3'h4; // @[AxiApb.scala 188:22 189:20 192:20]
+  wire [31:0] _GEN_21 = io_Apb_PReady ? io_Apb_PRData : 32'h0; // @[AxiApb.scala 197:23 200:20 204:20]
+  wire [2:0] _GEN_22 = RLast ? 3'h0 : 3'h5; // @[AxiApb.scala 206:22 207:20 209:20]
+  wire  _GEN_23 = 3'h5 == AxiState ? io_Apb_PReady : RLast; // @[AxiApb.scala 129:19 77:26]
+  wire  _GEN_24 = 3'h5 == AxiState ? io_Apb_PReady : RValid; // @[AxiApb.scala 129:19 76:26]
+  wire [31:0] _GEN_25 = 3'h5 == AxiState ? _GEN_21 : AxiRData; // @[AxiApb.scala 129:19 79:26]
+  wire [2:0] _GEN_26 = 3'h5 == AxiState ? _GEN_22 : AxiState; // @[AxiApb.scala 129:19 73:26]
+  wire  _GEN_27 = 3'h4 == AxiState ? 1'h0 : Bvalid; // @[AxiApb.scala 129:19 187:19 78:26]
+  wire [2:0] _GEN_28 = 3'h4 == AxiState ? _GEN_19 : _GEN_26; // @[AxiApb.scala 129:19]
+  wire [31:0] _GEN_29 = 3'h4 == AxiState ? _GEN_18 : _GEN_6; // @[AxiApb.scala 129:19]
+  wire  _GEN_30 = 3'h4 == AxiState ? RLast : _GEN_23; // @[AxiApb.scala 129:19 77:26]
+  wire  _GEN_31 = 3'h4 == AxiState ? RValid : _GEN_24; // @[AxiApb.scala 129:19 76:26]
+  wire [31:0] _GEN_32 = 3'h4 == AxiState ? AxiRData : _GEN_25; // @[AxiApb.scala 129:19 79:26]
+  wire  _GEN_33 = 3'h3 == AxiState ? 1'h0 : _GEN_27; // @[AxiApb.scala 129:19 177:19]
+  wire [2:0] _GEN_34 = 3'h3 == AxiState ? _GEN_17 : _GEN_28; // @[AxiApb.scala 129:19]
+  wire [31:0] _GEN_35 = 3'h3 == AxiState ? _GEN_18 : _GEN_29; // @[AxiApb.scala 129:19]
+  wire  _GEN_36 = 3'h3 == AxiState ? RLast : _GEN_30; // @[AxiApb.scala 129:19 77:26]
+  wire  _GEN_37 = 3'h3 == AxiState ? RValid : _GEN_31; // @[AxiApb.scala 129:19 76:26]
+  wire [31:0] _GEN_38 = 3'h3 == AxiState ? AxiRData : _GEN_32; // @[AxiApb.scala 129:19 79:26]
+  wire  _T_15 = ApbState == 3'h2; // @[AxiApb.scala 220:23]
+  assign io_Apb_PAddr = PAddr; // @[AxiApb.scala 260:18]
+  assign io_Apb_PWrite = AxiState == 3'h2 | _T_6; // @[AxiApb.scala 232:28]
+  assign io_Apb_PSel = ApbState == 3'h1 | _T_15; // @[AxiApb.scala 215:28 217:13]
+  assign io_Apb_PEnable = ApbState == 3'h1 ? 1'h0 : _T_15; // @[AxiApb.scala 215:28 218:13]
+  assign io_Apb_PWData = PWData; // @[AxiApb.scala 264:18]
+  assign io_AR_ArReady = AxiState == 3'h0; // @[AxiApb.scala 256:27]
+  assign io_R_RData = AxiRData; // @[AxiApb.scala 251:15]
+  assign io_R_RLast = RLast; // @[AxiApb.scala 250:15]
+  assign io_R_RValid = RValid; // @[AxiApb.scala 252:15]
+  assign io_AW_AwReady = AxiState == 3'h0; // @[AxiApb.scala 257:27]
+  assign io_B_Bvalid = Bvalid; // @[AxiApb.scala 255:15]
+  assign io_DebugAxiState = AxiState; // @[AxiApb.scala 266:18]
+  assign io_DebugApbState = ApbState; // @[AxiApb.scala 267:18]
+  assign io_DebugPAddr = PAddr; // @[AxiApb.scala 268:18]
+  assign io_DebugPWrite = AxiState == 3'h2 | _T_6; // @[AxiApb.scala 232:28]
+  assign io_DebugPSel = ApbState == 3'h1 | _T_15; // @[AxiApb.scala 215:28 217:13]
+  assign io_DebugPEnable = ApbState == 3'h1 ? 1'h0 : _T_15; // @[AxiApb.scala 215:28 218:13]
+  assign io_DebugPWData = PWData; // @[AxiApb.scala 272:18]
+  always @(posedge clock) begin
+    if (reset) begin // @[AxiApb.scala 73:26]
+      AxiState <= 3'h0; // @[AxiApb.scala 73:26]
+    end else if (3'h0 == AxiState) begin // @[AxiApb.scala 129:19]
+      if (io_AW_AwValid) begin // @[AxiApb.scala 135:21]
+        AxiState <= 3'h1; // @[AxiApb.scala 136:21]
+      end else if (io_AR_ArValid) begin // @[AxiApb.scala 138:27]
+        AxiState <= 3'h5; // @[AxiApb.scala 139:21]
+      end else begin
+        AxiState <= 3'h0; // @[AxiApb.scala 142:21]
+      end
+    end else if (3'h1 == AxiState) begin // @[AxiApb.scala 129:19]
+      if (io_B_Bready) begin // @[AxiApb.scala 150:22]
+        AxiState <= 3'h2; // @[AxiApb.scala 151:20]
+      end else begin
+        AxiState <= 3'h1; // @[AxiApb.scala 154:20]
+      end
+    end else if (3'h2 == AxiState) begin // @[AxiApb.scala 129:19]
+      AxiState <= _GEN_15;
+    end else begin
+      AxiState <= _GEN_34;
+    end
+    if (reset) begin // @[AxiApb.scala 74:26]
+      ApbState <= 3'h0; // @[AxiApb.scala 74:26]
+    end else if (3'h0 == ApbState) begin // @[AxiApb.scala 88:19]
+      if (io_AW_AwValid | io_AR_ArValid) begin // @[AxiApb.scala 94:29]
+        ApbState <= 3'h1; // @[AxiApb.scala 95:18]
+      end else begin
+        ApbState <= 3'h0; // @[AxiApb.scala 97:18]
+      end
+    end else if (3'h1 == ApbState) begin // @[AxiApb.scala 88:19]
+      if (io_W_WValid | AxiState == 3'h5) begin // @[AxiApb.scala 105:40]
+        ApbState <= 3'h2; // @[AxiApb.scala 106:17]
+      end else begin
+        ApbState <= 3'h1; // @[AxiApb.scala 108:17]
+      end
+    end else if (3'h2 == ApbState) begin // @[AxiApb.scala 88:19]
+      ApbState <= _GEN_3;
+    end
+    if (reset) begin // @[AxiApb.scala 76:26]
+      RValid <= 1'h0; // @[AxiApb.scala 76:26]
+    end else if (3'h0 == AxiState) begin // @[AxiApb.scala 129:19]
+      RValid <= 1'h0; // @[AxiApb.scala 133:16]
+    end else if (!(3'h1 == AxiState)) begin // @[AxiApb.scala 129:19]
+      if (!(3'h2 == AxiState)) begin // @[AxiApb.scala 129:19]
+        RValid <= _GEN_37;
+      end
+    end
+    if (reset) begin // @[AxiApb.scala 77:26]
+      RLast <= 1'h0; // @[AxiApb.scala 77:26]
+    end else if (3'h0 == AxiState) begin // @[AxiApb.scala 129:19]
+      RLast <= 1'h0; // @[AxiApb.scala 132:16]
+    end else if (!(3'h1 == AxiState)) begin // @[AxiApb.scala 129:19]
+      if (!(3'h2 == AxiState)) begin // @[AxiApb.scala 129:19]
+        RLast <= _GEN_36;
+      end
+    end
+    if (reset) begin // @[AxiApb.scala 78:26]
+      Bvalid <= 1'h0; // @[AxiApb.scala 78:26]
+    end else if (3'h0 == AxiState) begin // @[AxiApb.scala 129:19]
+      Bvalid <= 1'h0; // @[AxiApb.scala 131:16]
+    end else if (3'h1 == AxiState) begin // @[AxiApb.scala 129:19]
+      Bvalid <= io_B_Bready;
+    end else if (3'h2 == AxiState) begin // @[AxiApb.scala 129:19]
+      Bvalid <= 1'h0; // @[AxiApb.scala 160:17]
+    end else begin
+      Bvalid <= _GEN_33;
+    end
+    if (reset) begin // @[AxiApb.scala 79:26]
+      AxiRData <= 32'h0; // @[AxiApb.scala 79:26]
+    end else if (3'h0 == AxiState) begin // @[AxiApb.scala 129:19]
+      AxiRData <= 32'h0; // @[AxiApb.scala 134:16]
+    end else if (!(3'h1 == AxiState)) begin // @[AxiApb.scala 129:19]
+      if (!(3'h2 == AxiState)) begin // @[AxiApb.scala 129:19]
+        AxiRData <= _GEN_38;
+      end
+    end
+    if (reset) begin // @[AxiApb.scala 81:26]
+      PAddr <= 32'h0; // @[AxiApb.scala 81:26]
+    end else if (3'h0 == AxiState) begin // @[AxiApb.scala 129:19]
+      if (io_AW_AwValid) begin // @[AxiApb.scala 135:21]
+        PAddr <= io_AW_AwAddr; // @[AxiApb.scala 137:21]
+      end else if (io_AR_ArValid) begin // @[AxiApb.scala 138:27]
+        PAddr <= io_AR_ArAddr; // @[AxiApb.scala 140:21]
+      end else begin
+        PAddr <= 32'h0; // @[AxiApb.scala 143:21]
+      end
+    end
+    if (reset) begin // @[AxiApb.scala 85:26]
+      PWData <= 32'h0; // @[AxiApb.scala 85:26]
+    end else if (3'h0 == AxiState) begin // @[AxiApb.scala 129:19]
+      PWData <= _GEN_6;
+    end else if (3'h1 == AxiState) begin // @[AxiApb.scala 129:19]
+      PWData <= _GEN_6;
+    end else if (3'h2 == AxiState) begin // @[AxiApb.scala 129:19]
+      PWData <= _GEN_16;
+    end else begin
+      PWData <= _GEN_35;
+    end
+  end
+// Register and memory initialization
+`ifdef RANDOMIZE_GARBAGE_ASSIGN
+`define RANDOMIZE
+`endif
+`ifdef RANDOMIZE_INVALID_ASSIGN
+`define RANDOMIZE
+`endif
+`ifdef RANDOMIZE_REG_INIT
+`define RANDOMIZE
+`endif
+`ifdef RANDOMIZE_MEM_INIT
+`define RANDOMIZE
+`endif
+`ifndef RANDOM
+`define RANDOM $random
+`endif
+`ifdef RANDOMIZE_MEM_INIT
+  integer initvar;
+`endif
+`ifndef SYNTHESIS
+`ifdef FIRRTL_BEFORE_INITIAL
+`FIRRTL_BEFORE_INITIAL
+`endif
+initial begin
+  `ifdef RANDOMIZE
+    `ifdef INIT_RANDOM
+      `INIT_RANDOM
+    `endif
+    `ifndef VERILATOR
+      `ifdef RANDOMIZE_DELAY
+        #`RANDOMIZE_DELAY begin end
+      `else
+        #0.002 begin end
+      `endif
+    `endif
+`ifdef RANDOMIZE_REG_INIT
+  _RAND_0 = {1{`RANDOM}};
+  AxiState = _RAND_0[2:0];
+  _RAND_1 = {1{`RANDOM}};
+  ApbState = _RAND_1[2:0];
+  _RAND_2 = {1{`RANDOM}};
+  RValid = _RAND_2[0:0];
+  _RAND_3 = {1{`RANDOM}};
+  RLast = _RAND_3[0:0];
+  _RAND_4 = {1{`RANDOM}};
+  Bvalid = _RAND_4[0:0];
+  _RAND_5 = {1{`RANDOM}};
+  AxiRData = _RAND_5[31:0];
+  _RAND_6 = {1{`RANDOM}};
+  PAddr = _RAND_6[31:0];
+  _RAND_7 = {1{`RANDOM}};
+  PWData = _RAND_7[31:0];
+`endif // RANDOMIZE_REG_INIT
+  `endif // RANDOMIZE
+end // initial
+`ifdef FIRRTL_AFTER_INITIAL
+`FIRRTL_AFTER_INITIAL
+`endif
+`endif // SYNTHESIS
+endmodule
+module LedSlave(
+  input         clock,
+  input         reset,
+  input  [31:0] io_Apb_PAddr,
+  input         io_Apb_PWrite,
+  input         io_Apb_PSel,
+  input         io_Apb_PEnable,
+  input  [31:0] io_Apb_PWData,
+  output [31:0] io_Apb_PRData,
+  output        io_Apb_PReady,
+  output [7:0]  io_Led_Led
+);
+`ifdef RANDOMIZE_REG_INIT
+  reg [31:0] _RAND_0;
+`endif // RANDOMIZE_REG_INIT
+  reg [7:0] Led; // @[LedSlave.scala 40:28]
+  wire  _T_1 = io_Apb_PAddr == 32'h20000000; // @[LedSlave.scala 43:20]
+  wire [31:0] _PRData_T = {24'h0,Led}; // @[Cat.scala 31:58]
+  wire [31:0] _GEN_1 = io_Apb_PWrite ? 32'h0 : _PRData_T; // @[LedSlave.scala 45:24 47:20 51:20]
+  wire [31:0] _GEN_5 = io_Apb_PAddr == 32'h20000000 ? _GEN_1 : 32'h0; // @[LedSlave.scala 43:32 57:18]
+  assign io_Apb_PRData = io_Apb_PSel & io_Apb_PEnable ? _GEN_5 : 32'h0; // @[LedSlave.scala 42:24 62:15]
+  assign io_Apb_PReady = io_Apb_PSel & io_Apb_PEnable & _T_1; // @[LedSlave.scala 42:24 63:15]
+  assign io_Led_Led = Led; // @[LedSlave.scala 71:22]
+  always @(posedge clock) begin
+    if (reset) begin // @[LedSlave.scala 40:28]
+      Led <= 8'h0; // @[LedSlave.scala 40:28]
+    end else if (io_Apb_PSel & io_Apb_PEnable) begin // @[LedSlave.scala 42:24]
+      if (io_Apb_PAddr == 32'h20000000) begin // @[LedSlave.scala 43:32]
+        if (io_Apb_PWrite) begin // @[LedSlave.scala 45:24]
+          Led <= io_Apb_PWData[7:0]; // @[LedSlave.scala 48:20]
+        end
+      end
+    end
+  end
+// Register and memory initialization
+`ifdef RANDOMIZE_GARBAGE_ASSIGN
+`define RANDOMIZE
+`endif
+`ifdef RANDOMIZE_INVALID_ASSIGN
+`define RANDOMIZE
+`endif
+`ifdef RANDOMIZE_REG_INIT
+`define RANDOMIZE
+`endif
+`ifdef RANDOMIZE_MEM_INIT
+`define RANDOMIZE
+`endif
+`ifndef RANDOM
+`define RANDOM $random
+`endif
+`ifdef RANDOMIZE_MEM_INIT
+  integer initvar;
+`endif
+`ifndef SYNTHESIS
+`ifdef FIRRTL_BEFORE_INITIAL
+`FIRRTL_BEFORE_INITIAL
+`endif
+initial begin
+  `ifdef RANDOMIZE
+    `ifdef INIT_RANDOM
+      `INIT_RANDOM
+    `endif
+    `ifndef VERILATOR
+      `ifdef RANDOMIZE_DELAY
+        #`RANDOMIZE_DELAY begin end
+      `else
+        #0.002 begin end
+      `endif
+    `endif
+`ifdef RANDOMIZE_REG_INIT
+  _RAND_0 = {1{`RANDOM}};
+  Led = _RAND_0[7:0];
 `endif // RANDOMIZE_REG_INIT
   `endif // RANDOMIZE
 end // initial
@@ -3609,16 +4200,19 @@ module DataMemSlave(
   input  [31:0] io_MemData_data_sram_rdata,
   input  [31:0] io_AR_ArAddr,
   input         io_AR_ArValid,
+  output        io_AR_ArReady,
   output [31:0] io_R_RData,
   output        io_R_RLast,
   output        io_R_RValid,
   input  [31:0] io_AW_AwAddr,
-  input  [2:0]  io_AW_Awize,
+  input  [1:0]  io_AW_AwSize,
   input         io_AW_AwValid,
+  output        io_AW_AwReady,
   input  [31:0] io_W_WData,
   input         io_W_WLast,
   input         io_W_WValid,
-  output        io_B_Bvalid
+  output        io_B_Bvalid,
+  input         io_B_Bready
 );
 `ifdef RANDOMIZE_REG_INIT
   reg [31:0] _RAND_0;
@@ -3640,22 +4234,24 @@ module DataMemSlave(
   reg  RLast; // @[AxiMem.scala 70:26]
   reg  Bvalid; // @[AxiMem.scala 71:26]
   reg [31:0] AxiRData; // @[AxiMem.scala 72:26]
-  wire [3:0] _DataWen_T_3 = io_AW_Awize == 3'h3 ? 4'hf : 4'h0; // @[AxiMem.scala 83:24]
-  wire [3:0] _DataWen_T_4 = io_AW_Awize == 3'h1 ? 4'h3 : _DataWen_T_3; // @[AxiMem.scala 82:24]
+  wire [3:0] _DataWen_T_3 = io_AW_AwSize == 2'h3 ? 4'hf : 4'h0; // @[AxiMem.scala 83:24]
+  wire [3:0] _DataWen_T_4 = io_AW_AwSize == 2'h1 ? 4'h3 : _DataWen_T_3; // @[AxiMem.scala 82:24]
+  wire  _GEN_9 = io_B_Bready | Bvalid; // @[AxiMem.scala 104:19 106:17 71:26]
   wire [1:0] _GEN_10 = io_W_WLast ? 2'h0 : RegState; // @[AxiMem.scala 112:16 113:16 63:26]
   wire [31:0] _GEN_14 = io_W_WValid ? io_W_WData : MemWData; // @[AxiMem.scala 116:17 121:16 67:26]
   wire  _GEN_15 = 2'h3 == RegState | RValid; // @[AxiMem.scala 132:14 75:19 69:26]
   wire [31:0] _GEN_16 = 2'h3 == RegState ? io_MemData_data_sram_rdata : AxiRData; // @[AxiMem.scala 133:14 75:19 72:26]
   wire [1:0] _GEN_17 = 2'h3 == RegState ? 2'h0 : RegState; // @[AxiMem.scala 134:14 75:19 63:26]
   wire  _GEN_18 = 2'h3 == RegState | RLast; // @[AxiMem.scala 135:14 75:19 70:26]
-  wire  _GEN_19 = 2'h2 == RegState ? 1'h0 : Bvalid; // @[AxiMem.scala 111:14 75:19 71:26]
   assign io_MemData_data_sram_en = DataEn; // @[AxiMem.scala 153:29]
   assign io_MemData_data_sram_wen = DataWen; // @[AxiMem.scala 154:29]
   assign io_MemData_data_sram_addr = DataAddr; // @[AxiMem.scala 155:29]
   assign io_MemData_data_sram_wdata = MemWData; // @[AxiMem.scala 156:29]
+  assign io_AR_ArReady = RegState == 2'h0; // @[AxiMem.scala 149:27]
   assign io_R_RData = AxiRData; // @[AxiMem.scala 144:15]
   assign io_R_RLast = RLast; // @[AxiMem.scala 143:15]
   assign io_R_RValid = RValid; // @[AxiMem.scala 145:15]
+  assign io_AW_AwReady = RegState == 2'h0; // @[AxiMem.scala 150:27]
   assign io_B_Bvalid = Bvalid; // @[AxiMem.scala 148:15]
   always @(posedge clock) begin
     if (reset) begin // @[AxiMem.scala 63:26]
@@ -3669,7 +4265,9 @@ module DataMemSlave(
         RegState <= 2'h0; // @[AxiMem.scala 95:18]
       end
     end else if (2'h1 == RegState) begin // @[AxiMem.scala 75:19]
-      RegState <= 2'h2;
+      if (io_B_Bready) begin // @[AxiMem.scala 104:19]
+        RegState <= 2'h2; // @[AxiMem.scala 105:17]
+      end
     end else if (2'h2 == RegState) begin // @[AxiMem.scala 75:19]
       RegState <= _GEN_10;
     end else begin
@@ -3692,7 +4290,7 @@ module DataMemSlave(
       DataWen <= 4'h0; // @[AxiMem.scala 65:26]
     end else if (2'h0 == RegState) begin // @[AxiMem.scala 75:19]
       if (io_AW_AwValid) begin // @[AxiMem.scala 79:18]
-        if (io_AW_Awize == 3'h0) begin // @[AxiMem.scala 81:24]
+        if (io_AW_AwSize == 2'h0) begin // @[AxiMem.scala 81:24]
           DataWen <= 4'h1;
         end else begin
           DataWen <= _DataWen_T_4;
@@ -3742,7 +4340,11 @@ module DataMemSlave(
     if (reset) begin // @[AxiMem.scala 71:26]
       Bvalid <= 1'h0; // @[AxiMem.scala 71:26]
     end else if (!(2'h0 == RegState)) begin // @[AxiMem.scala 75:19]
-      Bvalid <= 2'h1 == RegState | _GEN_19;
+      if (2'h1 == RegState) begin // @[AxiMem.scala 75:19]
+        Bvalid <= _GEN_9;
+      end else if (2'h2 == RegState) begin // @[AxiMem.scala 75:19]
+        Bvalid <= 1'h0; // @[AxiMem.scala 111:14]
+      end
     end
     if (reset) begin // @[AxiMem.scala 72:26]
       AxiRData <= 32'h0; // @[AxiMem.scala 72:26]
@@ -3829,6 +4431,7 @@ module SocTop(
   output [31:0] io_MemData_data_sram_addr,
   output [31:0] io_MemData_data_sram_wdata,
   input  [31:0] io_MemData_data_sram_rdata,
+  output [7:0]  io_Led_Led,
   output [31:0] io_Debug_DebugInstr,
   output [31:0] io_Debug_DebugPc,
   output        io_Debug_DebugIfValid,
@@ -3868,103 +4471,224 @@ module SocTop(
   output [4:0]  io_Debug_DebugMemRd_r,
   output        io_DeBugAddrOk,
   output        io_DeBugDataOk,
-  output [31:0] io_DeBugRData
+  output [31:0] io_DeBugRData,
+  output [2:0]  io_DebugRegState,
+  output [31:0] io_DebugArAddr,
+  output [1:0]  io_DebugArsize,
+  output        io_DebugArValid,
+  output [31:0] io_DebugAwAddr,
+  output [1:0]  io_DebugAwsize,
+  output        io_DebugAwValid,
+  output [31:0] io_DebugWData,
+  output        io_DebugWLast,
+  output        io_DebugWValid,
+  output [1:0]  io_DebugWriteState,
+  output [1:0]  io_DebugReadState,
+  output [2:0]  io_DebugAxiState,
+  output [2:0]  io_DebugApbState,
+  output [31:0] io_DebugPAddr,
+  output        io_DebugPWrite,
+  output        io_DebugPSel,
+  output        io_DebugPEnable,
+  output [31:0] io_DebugPWData
 );
-  wire  Cpu_clock; // @[SocTop.scala 15:29]
-  wire  Cpu_reset; // @[SocTop.scala 15:29]
-  wire  Cpu_io_Axi_ExeData_data_sram_en; // @[SocTop.scala 15:29]
-  wire  Cpu_io_Axi_ExeData_data_sram_wen; // @[SocTop.scala 15:29]
-  wire [31:0] Cpu_io_Axi_ExeData_data_sram_addr; // @[SocTop.scala 15:29]
-  wire [31:0] Cpu_io_Axi_ExeData_data_sram_wdata; // @[SocTop.scala 15:29]
-  wire [1:0] Cpu_io_Axi_ExeData_data_size; // @[SocTop.scala 15:29]
-  wire [31:0] Cpu_io_Axi_DataMem_data_sram_rdata; // @[SocTop.scala 15:29]
-  wire  Cpu_io_Axi_DataMem_data_ok; // @[SocTop.scala 15:29]
-  wire  Cpu_io_Axi_DataMem_data_addr_ok; // @[SocTop.scala 15:29]
-  wire  Cpu_io_Instr_PreIfInstr_inst_sram_en; // @[SocTop.scala 15:29]
-  wire [31:0] Cpu_io_Instr_PreIfInstr_inst_sram_addr; // @[SocTop.scala 15:29]
-  wire [31:0] Cpu_io_Instr_InstrIf_inst_sram_rdata; // @[SocTop.scala 15:29]
-  wire [31:0] Cpu_io_Debug_DebugInstr; // @[SocTop.scala 15:29]
-  wire [31:0] Cpu_io_Debug_DebugPc; // @[SocTop.scala 15:29]
-  wire  Cpu_io_Debug_DebugIfValid; // @[SocTop.scala 15:29]
-  wire  Cpu_io_Debug_DebugIfEn; // @[SocTop.scala 15:29]
-  wire [9:0] Cpu_io_Debug_Debug_alu_op; // @[SocTop.scala 15:29]
-  wire [31:0] Cpu_io_Debug_Debug_data1; // @[SocTop.scala 15:29]
-  wire [31:0] Cpu_io_Debug_Debug_data2; // @[SocTop.scala 15:29]
-  wire  Cpu_io_Debug_Debug_mmu_en; // @[SocTop.scala 15:29]
-  wire  Cpu_io_Debug_Debug_mmu_wen; // @[SocTop.scala 15:29]
-  wire [4:0] Cpu_io_Debug_Debug_mmu_op; // @[SocTop.scala 15:29]
-  wire [31:0] Cpu_io_Debug_Debug_mmu_RData2; // @[SocTop.scala 15:29]
-  wire  Cpu_io_Debug_Debug_pcu_en; // @[SocTop.scala 15:29]
-  wire [7:0] Cpu_io_Debug_Debug_pcu_op; // @[SocTop.scala 15:29]
-  wire [31:0] Cpu_io_Debug_Debug_pcu_data1; // @[SocTop.scala 15:29]
-  wire [31:0] Cpu_io_Debug_Debug_pcu_data2; // @[SocTop.scala 15:29]
-  wire [4:0] Cpu_io_Debug_Debug_rd_r; // @[SocTop.scala 15:29]
-  wire  Cpu_io_Debug_Debug_csr_en; // @[SocTop.scala 15:29]
-  wire [2:0] Cpu_io_Debug_Debug_csr_op; // @[SocTop.scala 15:29]
-  wire [11:0] Cpu_io_Debug_Debug_csr_waddr; // @[SocTop.scala 15:29]
-  wire [31:0] Cpu_io_Debug_Debug_csr_data; // @[SocTop.scala 15:29]
-  wire [31:0] Cpu_io_Debug_Debug_csr_imm; // @[SocTop.scala 15:29]
-  wire  Cpu_io_Debug_Debug_IdValid; // @[SocTop.scala 15:29]
-  wire [31:0] Cpu_io_Debug_DebugResult; // @[SocTop.scala 15:29]
-  wire [4:0] Cpu_io_Debug_DebugRd_r; // @[SocTop.scala 15:29]
-  wire  Cpu_io_Debug_DebugDataEn; // @[SocTop.scala 15:29]
-  wire  Cpu_io_Debug_DebugDataWen; // @[SocTop.scala 15:29]
-  wire [31:0] Cpu_io_Debug_DebugDataWdata; // @[SocTop.scala 15:29]
-  wire [1:0] Cpu_io_Debug_DebugDataSize; // @[SocTop.scala 15:29]
-  wire  Cpu_io_Debug_DebugDataMemValid; // @[SocTop.scala 15:29]
-  wire [4:0] Cpu_io_Debug_DebugLoadOp; // @[SocTop.scala 15:29]
-  wire  Cpu_io_Debug_DebugPcJump; // @[SocTop.scala 15:29]
-  wire [31:0] Cpu_io_Debug_DebugNextPc; // @[SocTop.scala 15:29]
-  wire [11:0] Cpu_io_Debug_DebugCsrWAddr; // @[SocTop.scala 15:29]
-  wire [31:0] Cpu_io_Debug_DebugCsrWData; // @[SocTop.scala 15:29]
-  wire  Cpu_io_Debug_DebugExeValid; // @[SocTop.scala 15:29]
-  wire [31:0] Cpu_io_Debug_DebugWData; // @[SocTop.scala 15:29]
-  wire [4:0] Cpu_io_Debug_DebugMemRd_r; // @[SocTop.scala 15:29]
-  wire  SramAxi_clock; // @[SocTop.scala 16:29]
-  wire  SramAxi_reset; // @[SocTop.scala 16:29]
-  wire  SramAxi_io_Cpu_ExeData_data_sram_en; // @[SocTop.scala 16:29]
-  wire  SramAxi_io_Cpu_ExeData_data_sram_wen; // @[SocTop.scala 16:29]
-  wire [31:0] SramAxi_io_Cpu_ExeData_data_sram_addr; // @[SocTop.scala 16:29]
-  wire [31:0] SramAxi_io_Cpu_ExeData_data_sram_wdata; // @[SocTop.scala 16:29]
-  wire [1:0] SramAxi_io_Cpu_ExeData_data_size; // @[SocTop.scala 16:29]
-  wire [31:0] SramAxi_io_Cpu_DataMem_data_sram_rdata; // @[SocTop.scala 16:29]
-  wire  SramAxi_io_Cpu_DataMem_data_ok; // @[SocTop.scala 16:29]
-  wire  SramAxi_io_Cpu_DataMem_data_addr_ok; // @[SocTop.scala 16:29]
-  wire [31:0] SramAxi_io_AR_ArAddr; // @[SocTop.scala 16:29]
-  wire  SramAxi_io_AR_ArValid; // @[SocTop.scala 16:29]
-  wire [31:0] SramAxi_io_R_RData; // @[SocTop.scala 16:29]
-  wire  SramAxi_io_R_RLast; // @[SocTop.scala 16:29]
-  wire  SramAxi_io_R_RValid; // @[SocTop.scala 16:29]
-  wire [31:0] SramAxi_io_AW_AwAddr; // @[SocTop.scala 16:29]
-  wire [2:0] SramAxi_io_AW_Awize; // @[SocTop.scala 16:29]
-  wire  SramAxi_io_AW_AwValid; // @[SocTop.scala 16:29]
-  wire [31:0] SramAxi_io_W_WData; // @[SocTop.scala 16:29]
-  wire  SramAxi_io_W_WLast; // @[SocTop.scala 16:29]
-  wire  SramAxi_io_W_WValid; // @[SocTop.scala 16:29]
-  wire  SramAxi_io_B_Bvalid; // @[SocTop.scala 16:29]
-  wire  SramAxi_io_DeBugAddrOk; // @[SocTop.scala 16:29]
-  wire  SramAxi_io_DeBugDataOk; // @[SocTop.scala 16:29]
-  wire [31:0] SramAxi_io_DeBugRData; // @[SocTop.scala 16:29]
-  wire  DataMemSlave_clock; // @[SocTop.scala 17:29]
-  wire  DataMemSlave_reset; // @[SocTop.scala 17:29]
-  wire  DataMemSlave_io_MemData_data_sram_en; // @[SocTop.scala 17:29]
-  wire [3:0] DataMemSlave_io_MemData_data_sram_wen; // @[SocTop.scala 17:29]
-  wire [31:0] DataMemSlave_io_MemData_data_sram_addr; // @[SocTop.scala 17:29]
-  wire [31:0] DataMemSlave_io_MemData_data_sram_wdata; // @[SocTop.scala 17:29]
-  wire [31:0] DataMemSlave_io_MemData_data_sram_rdata; // @[SocTop.scala 17:29]
-  wire [31:0] DataMemSlave_io_AR_ArAddr; // @[SocTop.scala 17:29]
-  wire  DataMemSlave_io_AR_ArValid; // @[SocTop.scala 17:29]
-  wire [31:0] DataMemSlave_io_R_RData; // @[SocTop.scala 17:29]
-  wire  DataMemSlave_io_R_RLast; // @[SocTop.scala 17:29]
-  wire  DataMemSlave_io_R_RValid; // @[SocTop.scala 17:29]
-  wire [31:0] DataMemSlave_io_AW_AwAddr; // @[SocTop.scala 17:29]
-  wire [2:0] DataMemSlave_io_AW_Awize; // @[SocTop.scala 17:29]
-  wire  DataMemSlave_io_AW_AwValid; // @[SocTop.scala 17:29]
-  wire [31:0] DataMemSlave_io_W_WData; // @[SocTop.scala 17:29]
-  wire  DataMemSlave_io_W_WLast; // @[SocTop.scala 17:29]
-  wire  DataMemSlave_io_W_WValid; // @[SocTop.scala 17:29]
-  wire  DataMemSlave_io_B_Bvalid; // @[SocTop.scala 17:29]
-  CoreTop Cpu ( // @[SocTop.scala 15:29]
+  wire  Cpu_clock; // @[SocTop.scala 37:29]
+  wire  Cpu_reset; // @[SocTop.scala 37:29]
+  wire  Cpu_io_Axi_ExeData_data_sram_en; // @[SocTop.scala 37:29]
+  wire  Cpu_io_Axi_ExeData_data_sram_wen; // @[SocTop.scala 37:29]
+  wire [31:0] Cpu_io_Axi_ExeData_data_sram_addr; // @[SocTop.scala 37:29]
+  wire [31:0] Cpu_io_Axi_ExeData_data_sram_wdata; // @[SocTop.scala 37:29]
+  wire [1:0] Cpu_io_Axi_ExeData_data_size; // @[SocTop.scala 37:29]
+  wire [31:0] Cpu_io_Axi_DataMem_data_sram_rdata; // @[SocTop.scala 37:29]
+  wire  Cpu_io_Axi_DataMem_data_ok; // @[SocTop.scala 37:29]
+  wire  Cpu_io_Axi_DataMem_data_addr_ok; // @[SocTop.scala 37:29]
+  wire  Cpu_io_Instr_PreIfInstr_inst_sram_en; // @[SocTop.scala 37:29]
+  wire [31:0] Cpu_io_Instr_PreIfInstr_inst_sram_addr; // @[SocTop.scala 37:29]
+  wire [31:0] Cpu_io_Instr_InstrIf_inst_sram_rdata; // @[SocTop.scala 37:29]
+  wire [31:0] Cpu_io_Debug_DebugInstr; // @[SocTop.scala 37:29]
+  wire [31:0] Cpu_io_Debug_DebugPc; // @[SocTop.scala 37:29]
+  wire  Cpu_io_Debug_DebugIfValid; // @[SocTop.scala 37:29]
+  wire  Cpu_io_Debug_DebugIfEn; // @[SocTop.scala 37:29]
+  wire [9:0] Cpu_io_Debug_Debug_alu_op; // @[SocTop.scala 37:29]
+  wire [31:0] Cpu_io_Debug_Debug_data1; // @[SocTop.scala 37:29]
+  wire [31:0] Cpu_io_Debug_Debug_data2; // @[SocTop.scala 37:29]
+  wire  Cpu_io_Debug_Debug_mmu_en; // @[SocTop.scala 37:29]
+  wire  Cpu_io_Debug_Debug_mmu_wen; // @[SocTop.scala 37:29]
+  wire [4:0] Cpu_io_Debug_Debug_mmu_op; // @[SocTop.scala 37:29]
+  wire [31:0] Cpu_io_Debug_Debug_mmu_RData2; // @[SocTop.scala 37:29]
+  wire  Cpu_io_Debug_Debug_pcu_en; // @[SocTop.scala 37:29]
+  wire [7:0] Cpu_io_Debug_Debug_pcu_op; // @[SocTop.scala 37:29]
+  wire [31:0] Cpu_io_Debug_Debug_pcu_data1; // @[SocTop.scala 37:29]
+  wire [31:0] Cpu_io_Debug_Debug_pcu_data2; // @[SocTop.scala 37:29]
+  wire [4:0] Cpu_io_Debug_Debug_rd_r; // @[SocTop.scala 37:29]
+  wire  Cpu_io_Debug_Debug_csr_en; // @[SocTop.scala 37:29]
+  wire [2:0] Cpu_io_Debug_Debug_csr_op; // @[SocTop.scala 37:29]
+  wire [11:0] Cpu_io_Debug_Debug_csr_waddr; // @[SocTop.scala 37:29]
+  wire [31:0] Cpu_io_Debug_Debug_csr_data; // @[SocTop.scala 37:29]
+  wire [31:0] Cpu_io_Debug_Debug_csr_imm; // @[SocTop.scala 37:29]
+  wire  Cpu_io_Debug_Debug_IdValid; // @[SocTop.scala 37:29]
+  wire [31:0] Cpu_io_Debug_DebugResult; // @[SocTop.scala 37:29]
+  wire [4:0] Cpu_io_Debug_DebugRd_r; // @[SocTop.scala 37:29]
+  wire  Cpu_io_Debug_DebugDataEn; // @[SocTop.scala 37:29]
+  wire  Cpu_io_Debug_DebugDataWen; // @[SocTop.scala 37:29]
+  wire [31:0] Cpu_io_Debug_DebugDataWdata; // @[SocTop.scala 37:29]
+  wire [1:0] Cpu_io_Debug_DebugDataSize; // @[SocTop.scala 37:29]
+  wire  Cpu_io_Debug_DebugDataMemValid; // @[SocTop.scala 37:29]
+  wire [4:0] Cpu_io_Debug_DebugLoadOp; // @[SocTop.scala 37:29]
+  wire  Cpu_io_Debug_DebugPcJump; // @[SocTop.scala 37:29]
+  wire [31:0] Cpu_io_Debug_DebugNextPc; // @[SocTop.scala 37:29]
+  wire [11:0] Cpu_io_Debug_DebugCsrWAddr; // @[SocTop.scala 37:29]
+  wire [31:0] Cpu_io_Debug_DebugCsrWData; // @[SocTop.scala 37:29]
+  wire  Cpu_io_Debug_DebugExeValid; // @[SocTop.scala 37:29]
+  wire [31:0] Cpu_io_Debug_DebugWData; // @[SocTop.scala 37:29]
+  wire [4:0] Cpu_io_Debug_DebugMemRd_r; // @[SocTop.scala 37:29]
+  wire  SramAxi_clock; // @[SocTop.scala 38:29]
+  wire  SramAxi_reset; // @[SocTop.scala 38:29]
+  wire  SramAxi_io_Cpu_ExeData_data_sram_en; // @[SocTop.scala 38:29]
+  wire  SramAxi_io_Cpu_ExeData_data_sram_wen; // @[SocTop.scala 38:29]
+  wire [31:0] SramAxi_io_Cpu_ExeData_data_sram_addr; // @[SocTop.scala 38:29]
+  wire [31:0] SramAxi_io_Cpu_ExeData_data_sram_wdata; // @[SocTop.scala 38:29]
+  wire [1:0] SramAxi_io_Cpu_ExeData_data_size; // @[SocTop.scala 38:29]
+  wire [31:0] SramAxi_io_Cpu_DataMem_data_sram_rdata; // @[SocTop.scala 38:29]
+  wire  SramAxi_io_Cpu_DataMem_data_ok; // @[SocTop.scala 38:29]
+  wire  SramAxi_io_Cpu_DataMem_data_addr_ok; // @[SocTop.scala 38:29]
+  wire [31:0] SramAxi_io_AR_ArAddr; // @[SocTop.scala 38:29]
+  wire  SramAxi_io_AR_ArValid; // @[SocTop.scala 38:29]
+  wire  SramAxi_io_AR_ArReady; // @[SocTop.scala 38:29]
+  wire [31:0] SramAxi_io_R_RData; // @[SocTop.scala 38:29]
+  wire  SramAxi_io_R_RLast; // @[SocTop.scala 38:29]
+  wire  SramAxi_io_R_RValid; // @[SocTop.scala 38:29]
+  wire [31:0] SramAxi_io_AW_AwAddr; // @[SocTop.scala 38:29]
+  wire [1:0] SramAxi_io_AW_AwSize; // @[SocTop.scala 38:29]
+  wire  SramAxi_io_AW_AwValid; // @[SocTop.scala 38:29]
+  wire  SramAxi_io_AW_AwReady; // @[SocTop.scala 38:29]
+  wire [31:0] SramAxi_io_W_WData; // @[SocTop.scala 38:29]
+  wire  SramAxi_io_W_WLast; // @[SocTop.scala 38:29]
+  wire  SramAxi_io_W_WValid; // @[SocTop.scala 38:29]
+  wire  SramAxi_io_B_Bvalid; // @[SocTop.scala 38:29]
+  wire  SramAxi_io_DeBugAddrOk; // @[SocTop.scala 38:29]
+  wire  SramAxi_io_DeBugDataOk; // @[SocTop.scala 38:29]
+  wire [31:0] SramAxi_io_DeBugRData; // @[SocTop.scala 38:29]
+  wire [2:0] SramAxi_io_DebugRegState; // @[SocTop.scala 38:29]
+  wire [31:0] SramAxi_io_DebugArAddr; // @[SocTop.scala 38:29]
+  wire [1:0] SramAxi_io_DebugArsize; // @[SocTop.scala 38:29]
+  wire  SramAxi_io_DebugArValid; // @[SocTop.scala 38:29]
+  wire [31:0] SramAxi_io_DebugAwAddr; // @[SocTop.scala 38:29]
+  wire [1:0] SramAxi_io_DebugAwsize; // @[SocTop.scala 38:29]
+  wire  SramAxi_io_DebugAwValid; // @[SocTop.scala 38:29]
+  wire [31:0] SramAxi_io_DebugWData; // @[SocTop.scala 38:29]
+  wire  SramAxi_io_DebugWLast; // @[SocTop.scala 38:29]
+  wire  SramAxi_io_DebugWValid; // @[SocTop.scala 38:29]
+  wire  AxiMux_clock; // @[SocTop.scala 39:29]
+  wire  AxiMux_reset; // @[SocTop.scala 39:29]
+  wire [31:0] AxiMux_io_AxiMaster1_AR_ArAddr; // @[SocTop.scala 39:29]
+  wire  AxiMux_io_AxiMaster1_AR_ArValid; // @[SocTop.scala 39:29]
+  wire  AxiMux_io_AxiMaster1_AR_ArReady; // @[SocTop.scala 39:29]
+  wire [31:0] AxiMux_io_AxiMaster1_R_RData; // @[SocTop.scala 39:29]
+  wire  AxiMux_io_AxiMaster1_R_RLast; // @[SocTop.scala 39:29]
+  wire  AxiMux_io_AxiMaster1_R_RValid; // @[SocTop.scala 39:29]
+  wire [31:0] AxiMux_io_AxiMaster1_AW_AwAddr; // @[SocTop.scala 39:29]
+  wire [1:0] AxiMux_io_AxiMaster1_AW_AwSize; // @[SocTop.scala 39:29]
+  wire  AxiMux_io_AxiMaster1_AW_AwValid; // @[SocTop.scala 39:29]
+  wire  AxiMux_io_AxiMaster1_AW_AwReady; // @[SocTop.scala 39:29]
+  wire [31:0] AxiMux_io_AxiMaster1_W_WData; // @[SocTop.scala 39:29]
+  wire  AxiMux_io_AxiMaster1_W_WLast; // @[SocTop.scala 39:29]
+  wire  AxiMux_io_AxiMaster1_W_WValid; // @[SocTop.scala 39:29]
+  wire  AxiMux_io_AxiMaster1_B_Bvalid; // @[SocTop.scala 39:29]
+  wire [31:0] AxiMux_io_AxiSlave1_AR_ArAddr; // @[SocTop.scala 39:29]
+  wire  AxiMux_io_AxiSlave1_AR_ArValid; // @[SocTop.scala 39:29]
+  wire  AxiMux_io_AxiSlave1_AR_ArReady; // @[SocTop.scala 39:29]
+  wire [31:0] AxiMux_io_AxiSlave1_R_RData; // @[SocTop.scala 39:29]
+  wire  AxiMux_io_AxiSlave1_R_RLast; // @[SocTop.scala 39:29]
+  wire  AxiMux_io_AxiSlave1_R_RValid; // @[SocTop.scala 39:29]
+  wire [31:0] AxiMux_io_AxiSlave1_AW_AwAddr; // @[SocTop.scala 39:29]
+  wire [1:0] AxiMux_io_AxiSlave1_AW_AwSize; // @[SocTop.scala 39:29]
+  wire  AxiMux_io_AxiSlave1_AW_AwValid; // @[SocTop.scala 39:29]
+  wire  AxiMux_io_AxiSlave1_AW_AwReady; // @[SocTop.scala 39:29]
+  wire [31:0] AxiMux_io_AxiSlave1_W_WData; // @[SocTop.scala 39:29]
+  wire  AxiMux_io_AxiSlave1_W_WLast; // @[SocTop.scala 39:29]
+  wire  AxiMux_io_AxiSlave1_W_WValid; // @[SocTop.scala 39:29]
+  wire  AxiMux_io_AxiSlave1_B_Bvalid; // @[SocTop.scala 39:29]
+  wire  AxiMux_io_AxiSlave1_B_Bready; // @[SocTop.scala 39:29]
+  wire [31:0] AxiMux_io_AxiSlave2_AR_ArAddr; // @[SocTop.scala 39:29]
+  wire  AxiMux_io_AxiSlave2_AR_ArValid; // @[SocTop.scala 39:29]
+  wire  AxiMux_io_AxiSlave2_AR_ArReady; // @[SocTop.scala 39:29]
+  wire [31:0] AxiMux_io_AxiSlave2_R_RData; // @[SocTop.scala 39:29]
+  wire  AxiMux_io_AxiSlave2_R_RLast; // @[SocTop.scala 39:29]
+  wire  AxiMux_io_AxiSlave2_R_RValid; // @[SocTop.scala 39:29]
+  wire [31:0] AxiMux_io_AxiSlave2_AW_AwAddr; // @[SocTop.scala 39:29]
+  wire  AxiMux_io_AxiSlave2_AW_AwValid; // @[SocTop.scala 39:29]
+  wire  AxiMux_io_AxiSlave2_AW_AwReady; // @[SocTop.scala 39:29]
+  wire [31:0] AxiMux_io_AxiSlave2_W_WData; // @[SocTop.scala 39:29]
+  wire  AxiMux_io_AxiSlave2_W_WLast; // @[SocTop.scala 39:29]
+  wire  AxiMux_io_AxiSlave2_W_WValid; // @[SocTop.scala 39:29]
+  wire  AxiMux_io_AxiSlave2_B_Bvalid; // @[SocTop.scala 39:29]
+  wire  AxiMux_io_AxiSlave2_B_Bready; // @[SocTop.scala 39:29]
+  wire [1:0] AxiMux_io_DebugWriteState; // @[SocTop.scala 39:29]
+  wire [1:0] AxiMux_io_DebugReadState; // @[SocTop.scala 39:29]
+  wire  AxiApb_clock; // @[SocTop.scala 40:29]
+  wire  AxiApb_reset; // @[SocTop.scala 40:29]
+  wire [31:0] AxiApb_io_Apb_PAddr; // @[SocTop.scala 40:29]
+  wire  AxiApb_io_Apb_PWrite; // @[SocTop.scala 40:29]
+  wire  AxiApb_io_Apb_PSel; // @[SocTop.scala 40:29]
+  wire  AxiApb_io_Apb_PEnable; // @[SocTop.scala 40:29]
+  wire [31:0] AxiApb_io_Apb_PWData; // @[SocTop.scala 40:29]
+  wire [31:0] AxiApb_io_Apb_PRData; // @[SocTop.scala 40:29]
+  wire  AxiApb_io_Apb_PReady; // @[SocTop.scala 40:29]
+  wire [31:0] AxiApb_io_AR_ArAddr; // @[SocTop.scala 40:29]
+  wire  AxiApb_io_AR_ArValid; // @[SocTop.scala 40:29]
+  wire  AxiApb_io_AR_ArReady; // @[SocTop.scala 40:29]
+  wire [31:0] AxiApb_io_R_RData; // @[SocTop.scala 40:29]
+  wire  AxiApb_io_R_RLast; // @[SocTop.scala 40:29]
+  wire  AxiApb_io_R_RValid; // @[SocTop.scala 40:29]
+  wire [31:0] AxiApb_io_AW_AwAddr; // @[SocTop.scala 40:29]
+  wire  AxiApb_io_AW_AwValid; // @[SocTop.scala 40:29]
+  wire  AxiApb_io_AW_AwReady; // @[SocTop.scala 40:29]
+  wire [31:0] AxiApb_io_W_WData; // @[SocTop.scala 40:29]
+  wire  AxiApb_io_W_WLast; // @[SocTop.scala 40:29]
+  wire  AxiApb_io_W_WValid; // @[SocTop.scala 40:29]
+  wire  AxiApb_io_B_Bvalid; // @[SocTop.scala 40:29]
+  wire  AxiApb_io_B_Bready; // @[SocTop.scala 40:29]
+  wire [2:0] AxiApb_io_DebugAxiState; // @[SocTop.scala 40:29]
+  wire [2:0] AxiApb_io_DebugApbState; // @[SocTop.scala 40:29]
+  wire [31:0] AxiApb_io_DebugPAddr; // @[SocTop.scala 40:29]
+  wire  AxiApb_io_DebugPWrite; // @[SocTop.scala 40:29]
+  wire  AxiApb_io_DebugPSel; // @[SocTop.scala 40:29]
+  wire  AxiApb_io_DebugPEnable; // @[SocTop.scala 40:29]
+  wire [31:0] AxiApb_io_DebugPWData; // @[SocTop.scala 40:29]
+  wire  LedSlave_clock; // @[SocTop.scala 41:29]
+  wire  LedSlave_reset; // @[SocTop.scala 41:29]
+  wire [31:0] LedSlave_io_Apb_PAddr; // @[SocTop.scala 41:29]
+  wire  LedSlave_io_Apb_PWrite; // @[SocTop.scala 41:29]
+  wire  LedSlave_io_Apb_PSel; // @[SocTop.scala 41:29]
+  wire  LedSlave_io_Apb_PEnable; // @[SocTop.scala 41:29]
+  wire [31:0] LedSlave_io_Apb_PWData; // @[SocTop.scala 41:29]
+  wire [31:0] LedSlave_io_Apb_PRData; // @[SocTop.scala 41:29]
+  wire  LedSlave_io_Apb_PReady; // @[SocTop.scala 41:29]
+  wire [7:0] LedSlave_io_Led_Led; // @[SocTop.scala 41:29]
+  wire  DataMemSlave_clock; // @[SocTop.scala 42:29]
+  wire  DataMemSlave_reset; // @[SocTop.scala 42:29]
+  wire  DataMemSlave_io_MemData_data_sram_en; // @[SocTop.scala 42:29]
+  wire [3:0] DataMemSlave_io_MemData_data_sram_wen; // @[SocTop.scala 42:29]
+  wire [31:0] DataMemSlave_io_MemData_data_sram_addr; // @[SocTop.scala 42:29]
+  wire [31:0] DataMemSlave_io_MemData_data_sram_wdata; // @[SocTop.scala 42:29]
+  wire [31:0] DataMemSlave_io_MemData_data_sram_rdata; // @[SocTop.scala 42:29]
+  wire [31:0] DataMemSlave_io_AR_ArAddr; // @[SocTop.scala 42:29]
+  wire  DataMemSlave_io_AR_ArValid; // @[SocTop.scala 42:29]
+  wire  DataMemSlave_io_AR_ArReady; // @[SocTop.scala 42:29]
+  wire [31:0] DataMemSlave_io_R_RData; // @[SocTop.scala 42:29]
+  wire  DataMemSlave_io_R_RLast; // @[SocTop.scala 42:29]
+  wire  DataMemSlave_io_R_RValid; // @[SocTop.scala 42:29]
+  wire [31:0] DataMemSlave_io_AW_AwAddr; // @[SocTop.scala 42:29]
+  wire [1:0] DataMemSlave_io_AW_AwSize; // @[SocTop.scala 42:29]
+  wire  DataMemSlave_io_AW_AwValid; // @[SocTop.scala 42:29]
+  wire  DataMemSlave_io_AW_AwReady; // @[SocTop.scala 42:29]
+  wire [31:0] DataMemSlave_io_W_WData; // @[SocTop.scala 42:29]
+  wire  DataMemSlave_io_W_WLast; // @[SocTop.scala 42:29]
+  wire  DataMemSlave_io_W_WValid; // @[SocTop.scala 42:29]
+  wire  DataMemSlave_io_B_Bvalid; // @[SocTop.scala 42:29]
+  wire  DataMemSlave_io_B_Bready; // @[SocTop.scala 42:29]
+  CoreTop Cpu ( // @[SocTop.scala 37:29]
     .clock(Cpu_clock),
     .reset(Cpu_reset),
     .io_Axi_ExeData_data_sram_en(Cpu_io_Axi_ExeData_data_sram_en),
@@ -4016,7 +4740,7 @@ module SocTop(
     .io_Debug_DebugWData(Cpu_io_Debug_DebugWData),
     .io_Debug_DebugMemRd_r(Cpu_io_Debug_DebugMemRd_r)
   );
-  AxiMasterAxi SramAxi ( // @[SocTop.scala 16:29]
+  AxiMasterAxi SramAxi ( // @[SocTop.scala 38:29]
     .clock(SramAxi_clock),
     .reset(SramAxi_reset),
     .io_Cpu_ExeData_data_sram_en(SramAxi_io_Cpu_ExeData_data_sram_en),
@@ -4029,21 +4753,126 @@ module SocTop(
     .io_Cpu_DataMem_data_addr_ok(SramAxi_io_Cpu_DataMem_data_addr_ok),
     .io_AR_ArAddr(SramAxi_io_AR_ArAddr),
     .io_AR_ArValid(SramAxi_io_AR_ArValid),
+    .io_AR_ArReady(SramAxi_io_AR_ArReady),
     .io_R_RData(SramAxi_io_R_RData),
     .io_R_RLast(SramAxi_io_R_RLast),
     .io_R_RValid(SramAxi_io_R_RValid),
     .io_AW_AwAddr(SramAxi_io_AW_AwAddr),
-    .io_AW_Awize(SramAxi_io_AW_Awize),
+    .io_AW_AwSize(SramAxi_io_AW_AwSize),
     .io_AW_AwValid(SramAxi_io_AW_AwValid),
+    .io_AW_AwReady(SramAxi_io_AW_AwReady),
     .io_W_WData(SramAxi_io_W_WData),
     .io_W_WLast(SramAxi_io_W_WLast),
     .io_W_WValid(SramAxi_io_W_WValid),
     .io_B_Bvalid(SramAxi_io_B_Bvalid),
     .io_DeBugAddrOk(SramAxi_io_DeBugAddrOk),
     .io_DeBugDataOk(SramAxi_io_DeBugDataOk),
-    .io_DeBugRData(SramAxi_io_DeBugRData)
+    .io_DeBugRData(SramAxi_io_DeBugRData),
+    .io_DebugRegState(SramAxi_io_DebugRegState),
+    .io_DebugArAddr(SramAxi_io_DebugArAddr),
+    .io_DebugArsize(SramAxi_io_DebugArsize),
+    .io_DebugArValid(SramAxi_io_DebugArValid),
+    .io_DebugAwAddr(SramAxi_io_DebugAwAddr),
+    .io_DebugAwsize(SramAxi_io_DebugAwsize),
+    .io_DebugAwValid(SramAxi_io_DebugAwValid),
+    .io_DebugWData(SramAxi_io_DebugWData),
+    .io_DebugWLast(SramAxi_io_DebugWLast),
+    .io_DebugWValid(SramAxi_io_DebugWValid)
   );
-  DataMemSlave DataMemSlave ( // @[SocTop.scala 17:29]
+  AxiMux AxiMux ( // @[SocTop.scala 39:29]
+    .clock(AxiMux_clock),
+    .reset(AxiMux_reset),
+    .io_AxiMaster1_AR_ArAddr(AxiMux_io_AxiMaster1_AR_ArAddr),
+    .io_AxiMaster1_AR_ArValid(AxiMux_io_AxiMaster1_AR_ArValid),
+    .io_AxiMaster1_AR_ArReady(AxiMux_io_AxiMaster1_AR_ArReady),
+    .io_AxiMaster1_R_RData(AxiMux_io_AxiMaster1_R_RData),
+    .io_AxiMaster1_R_RLast(AxiMux_io_AxiMaster1_R_RLast),
+    .io_AxiMaster1_R_RValid(AxiMux_io_AxiMaster1_R_RValid),
+    .io_AxiMaster1_AW_AwAddr(AxiMux_io_AxiMaster1_AW_AwAddr),
+    .io_AxiMaster1_AW_AwSize(AxiMux_io_AxiMaster1_AW_AwSize),
+    .io_AxiMaster1_AW_AwValid(AxiMux_io_AxiMaster1_AW_AwValid),
+    .io_AxiMaster1_AW_AwReady(AxiMux_io_AxiMaster1_AW_AwReady),
+    .io_AxiMaster1_W_WData(AxiMux_io_AxiMaster1_W_WData),
+    .io_AxiMaster1_W_WLast(AxiMux_io_AxiMaster1_W_WLast),
+    .io_AxiMaster1_W_WValid(AxiMux_io_AxiMaster1_W_WValid),
+    .io_AxiMaster1_B_Bvalid(AxiMux_io_AxiMaster1_B_Bvalid),
+    .io_AxiSlave1_AR_ArAddr(AxiMux_io_AxiSlave1_AR_ArAddr),
+    .io_AxiSlave1_AR_ArValid(AxiMux_io_AxiSlave1_AR_ArValid),
+    .io_AxiSlave1_AR_ArReady(AxiMux_io_AxiSlave1_AR_ArReady),
+    .io_AxiSlave1_R_RData(AxiMux_io_AxiSlave1_R_RData),
+    .io_AxiSlave1_R_RLast(AxiMux_io_AxiSlave1_R_RLast),
+    .io_AxiSlave1_R_RValid(AxiMux_io_AxiSlave1_R_RValid),
+    .io_AxiSlave1_AW_AwAddr(AxiMux_io_AxiSlave1_AW_AwAddr),
+    .io_AxiSlave1_AW_AwSize(AxiMux_io_AxiSlave1_AW_AwSize),
+    .io_AxiSlave1_AW_AwValid(AxiMux_io_AxiSlave1_AW_AwValid),
+    .io_AxiSlave1_AW_AwReady(AxiMux_io_AxiSlave1_AW_AwReady),
+    .io_AxiSlave1_W_WData(AxiMux_io_AxiSlave1_W_WData),
+    .io_AxiSlave1_W_WLast(AxiMux_io_AxiSlave1_W_WLast),
+    .io_AxiSlave1_W_WValid(AxiMux_io_AxiSlave1_W_WValid),
+    .io_AxiSlave1_B_Bvalid(AxiMux_io_AxiSlave1_B_Bvalid),
+    .io_AxiSlave1_B_Bready(AxiMux_io_AxiSlave1_B_Bready),
+    .io_AxiSlave2_AR_ArAddr(AxiMux_io_AxiSlave2_AR_ArAddr),
+    .io_AxiSlave2_AR_ArValid(AxiMux_io_AxiSlave2_AR_ArValid),
+    .io_AxiSlave2_AR_ArReady(AxiMux_io_AxiSlave2_AR_ArReady),
+    .io_AxiSlave2_R_RData(AxiMux_io_AxiSlave2_R_RData),
+    .io_AxiSlave2_R_RLast(AxiMux_io_AxiSlave2_R_RLast),
+    .io_AxiSlave2_R_RValid(AxiMux_io_AxiSlave2_R_RValid),
+    .io_AxiSlave2_AW_AwAddr(AxiMux_io_AxiSlave2_AW_AwAddr),
+    .io_AxiSlave2_AW_AwValid(AxiMux_io_AxiSlave2_AW_AwValid),
+    .io_AxiSlave2_AW_AwReady(AxiMux_io_AxiSlave2_AW_AwReady),
+    .io_AxiSlave2_W_WData(AxiMux_io_AxiSlave2_W_WData),
+    .io_AxiSlave2_W_WLast(AxiMux_io_AxiSlave2_W_WLast),
+    .io_AxiSlave2_W_WValid(AxiMux_io_AxiSlave2_W_WValid),
+    .io_AxiSlave2_B_Bvalid(AxiMux_io_AxiSlave2_B_Bvalid),
+    .io_AxiSlave2_B_Bready(AxiMux_io_AxiSlave2_B_Bready),
+    .io_DebugWriteState(AxiMux_io_DebugWriteState),
+    .io_DebugReadState(AxiMux_io_DebugReadState)
+  );
+  AxiApb AxiApb ( // @[SocTop.scala 40:29]
+    .clock(AxiApb_clock),
+    .reset(AxiApb_reset),
+    .io_Apb_PAddr(AxiApb_io_Apb_PAddr),
+    .io_Apb_PWrite(AxiApb_io_Apb_PWrite),
+    .io_Apb_PSel(AxiApb_io_Apb_PSel),
+    .io_Apb_PEnable(AxiApb_io_Apb_PEnable),
+    .io_Apb_PWData(AxiApb_io_Apb_PWData),
+    .io_Apb_PRData(AxiApb_io_Apb_PRData),
+    .io_Apb_PReady(AxiApb_io_Apb_PReady),
+    .io_AR_ArAddr(AxiApb_io_AR_ArAddr),
+    .io_AR_ArValid(AxiApb_io_AR_ArValid),
+    .io_AR_ArReady(AxiApb_io_AR_ArReady),
+    .io_R_RData(AxiApb_io_R_RData),
+    .io_R_RLast(AxiApb_io_R_RLast),
+    .io_R_RValid(AxiApb_io_R_RValid),
+    .io_AW_AwAddr(AxiApb_io_AW_AwAddr),
+    .io_AW_AwValid(AxiApb_io_AW_AwValid),
+    .io_AW_AwReady(AxiApb_io_AW_AwReady),
+    .io_W_WData(AxiApb_io_W_WData),
+    .io_W_WLast(AxiApb_io_W_WLast),
+    .io_W_WValid(AxiApb_io_W_WValid),
+    .io_B_Bvalid(AxiApb_io_B_Bvalid),
+    .io_B_Bready(AxiApb_io_B_Bready),
+    .io_DebugAxiState(AxiApb_io_DebugAxiState),
+    .io_DebugApbState(AxiApb_io_DebugApbState),
+    .io_DebugPAddr(AxiApb_io_DebugPAddr),
+    .io_DebugPWrite(AxiApb_io_DebugPWrite),
+    .io_DebugPSel(AxiApb_io_DebugPSel),
+    .io_DebugPEnable(AxiApb_io_DebugPEnable),
+    .io_DebugPWData(AxiApb_io_DebugPWData)
+  );
+  LedSlave LedSlave ( // @[SocTop.scala 41:29]
+    .clock(LedSlave_clock),
+    .reset(LedSlave_reset),
+    .io_Apb_PAddr(LedSlave_io_Apb_PAddr),
+    .io_Apb_PWrite(LedSlave_io_Apb_PWrite),
+    .io_Apb_PSel(LedSlave_io_Apb_PSel),
+    .io_Apb_PEnable(LedSlave_io_Apb_PEnable),
+    .io_Apb_PWData(LedSlave_io_Apb_PWData),
+    .io_Apb_PRData(LedSlave_io_Apb_PRData),
+    .io_Apb_PReady(LedSlave_io_Apb_PReady),
+    .io_Led_Led(LedSlave_io_Led_Led)
+  );
+  DataMemSlave DataMemSlave ( // @[SocTop.scala 42:29]
     .clock(DataMemSlave_clock),
     .reset(DataMemSlave_reset),
     .io_MemData_data_sram_en(DataMemSlave_io_MemData_data_sram_en),
@@ -4053,91 +4882,158 @@ module SocTop(
     .io_MemData_data_sram_rdata(DataMemSlave_io_MemData_data_sram_rdata),
     .io_AR_ArAddr(DataMemSlave_io_AR_ArAddr),
     .io_AR_ArValid(DataMemSlave_io_AR_ArValid),
+    .io_AR_ArReady(DataMemSlave_io_AR_ArReady),
     .io_R_RData(DataMemSlave_io_R_RData),
     .io_R_RLast(DataMemSlave_io_R_RLast),
     .io_R_RValid(DataMemSlave_io_R_RValid),
     .io_AW_AwAddr(DataMemSlave_io_AW_AwAddr),
-    .io_AW_Awize(DataMemSlave_io_AW_Awize),
+    .io_AW_AwSize(DataMemSlave_io_AW_AwSize),
     .io_AW_AwValid(DataMemSlave_io_AW_AwValid),
+    .io_AW_AwReady(DataMemSlave_io_AW_AwReady),
     .io_W_WData(DataMemSlave_io_W_WData),
     .io_W_WLast(DataMemSlave_io_W_WLast),
     .io_W_WValid(DataMemSlave_io_W_WValid),
-    .io_B_Bvalid(DataMemSlave_io_B_Bvalid)
+    .io_B_Bvalid(DataMemSlave_io_B_Bvalid),
+    .io_B_Bready(DataMemSlave_io_B_Bready)
   );
-  assign io_Instr_PreIfInstr_inst_sram_en = Cpu_io_Instr_PreIfInstr_inst_sram_en; // @[SocTop.scala 27:43]
-  assign io_Instr_PreIfInstr_inst_sram_wen = 4'h0; // @[SocTop.scala 28:43]
-  assign io_Instr_PreIfInstr_inst_sram_addr = Cpu_io_Instr_PreIfInstr_inst_sram_addr; // @[SocTop.scala 29:43]
-  assign io_Instr_PreIfInstr_inst_sram_wdata = 32'h0; // @[SocTop.scala 30:43]
-  assign io_MemData_data_sram_en = DataMemSlave_io_MemData_data_sram_en; // @[SocTop.scala 33:31]
-  assign io_MemData_data_sram_wen = DataMemSlave_io_MemData_data_sram_wen; // @[SocTop.scala 34:31]
-  assign io_MemData_data_sram_addr = DataMemSlave_io_MemData_data_sram_addr; // @[SocTop.scala 35:31]
-  assign io_MemData_data_sram_wdata = DataMemSlave_io_MemData_data_sram_wdata; // @[SocTop.scala 36:31]
-  assign io_Debug_DebugInstr = Cpu_io_Debug_DebugInstr; // @[SocTop.scala 40:26]
-  assign io_Debug_DebugPc = Cpu_io_Debug_DebugPc; // @[SocTop.scala 41:26]
-  assign io_Debug_DebugIfValid = Cpu_io_Debug_DebugIfValid; // @[SocTop.scala 42:26]
-  assign io_Debug_DebugIfEn = Cpu_io_Debug_DebugIfEn; // @[SocTop.scala 43:26]
-  assign io_Debug_Debug_alu_op = Cpu_io_Debug_Debug_alu_op; // @[SocTop.scala 45:26]
-  assign io_Debug_Debug_data1 = Cpu_io_Debug_Debug_data1; // @[SocTop.scala 46:26]
-  assign io_Debug_Debug_data2 = Cpu_io_Debug_Debug_data2; // @[SocTop.scala 47:26]
-  assign io_Debug_Debug_mmu_en = Cpu_io_Debug_Debug_mmu_en; // @[SocTop.scala 48:26]
-  assign io_Debug_Debug_mmu_wen = Cpu_io_Debug_Debug_mmu_wen; // @[SocTop.scala 49:26]
-  assign io_Debug_Debug_mmu_op = Cpu_io_Debug_Debug_mmu_op; // @[SocTop.scala 50:26]
-  assign io_Debug_Debug_mmu_RData2 = Cpu_io_Debug_Debug_mmu_RData2; // @[SocTop.scala 51:26]
-  assign io_Debug_Debug_pcu_en = Cpu_io_Debug_Debug_pcu_en; // @[SocTop.scala 52:26]
-  assign io_Debug_Debug_pcu_op = Cpu_io_Debug_Debug_pcu_op; // @[SocTop.scala 53:26]
-  assign io_Debug_Debug_pcu_data1 = Cpu_io_Debug_Debug_pcu_data1; // @[SocTop.scala 54:26]
-  assign io_Debug_Debug_pcu_data2 = Cpu_io_Debug_Debug_pcu_data2; // @[SocTop.scala 55:26]
-  assign io_Debug_Debug_rd_r = Cpu_io_Debug_Debug_rd_r; // @[SocTop.scala 56:26]
-  assign io_Debug_Debug_csr_en = Cpu_io_Debug_Debug_csr_en; // @[SocTop.scala 57:26]
-  assign io_Debug_Debug_csr_op = Cpu_io_Debug_Debug_csr_op; // @[SocTop.scala 58:26]
-  assign io_Debug_Debug_csr_waddr = Cpu_io_Debug_Debug_csr_waddr; // @[SocTop.scala 59:26]
-  assign io_Debug_Debug_csr_data = Cpu_io_Debug_Debug_csr_data; // @[SocTop.scala 60:26]
-  assign io_Debug_Debug_csr_imm = Cpu_io_Debug_Debug_csr_imm; // @[SocTop.scala 61:26]
-  assign io_Debug_Debug_IdValid = Cpu_io_Debug_Debug_IdValid; // @[SocTop.scala 62:26]
-  assign io_Debug_DebugResult = Cpu_io_Debug_DebugResult; // @[SocTop.scala 65:28]
-  assign io_Debug_DebugRd_r = Cpu_io_Debug_DebugRd_r; // @[SocTop.scala 66:28]
-  assign io_Debug_DebugDataEn = Cpu_io_Debug_DebugDataEn; // @[SocTop.scala 67:28]
-  assign io_Debug_DebugDataWen = Cpu_io_Debug_DebugDataWen; // @[SocTop.scala 68:28]
-  assign io_Debug_DebugDataWdata = Cpu_io_Debug_DebugDataWdata; // @[SocTop.scala 69:28]
-  assign io_Debug_DebugDataSize = Cpu_io_Debug_DebugDataSize; // @[SocTop.scala 70:28]
-  assign io_Debug_DebugDataMemValid = Cpu_io_Debug_DebugDataMemValid; // @[SocTop.scala 71:28]
-  assign io_Debug_DebugLoadOp = Cpu_io_Debug_DebugLoadOp; // @[SocTop.scala 72:28]
-  assign io_Debug_DebugPcJump = Cpu_io_Debug_DebugPcJump; // @[SocTop.scala 73:28]
-  assign io_Debug_DebugNextPc = Cpu_io_Debug_DebugNextPc; // @[SocTop.scala 74:28]
-  assign io_Debug_DebugCsrWAddr = Cpu_io_Debug_DebugCsrWAddr; // @[SocTop.scala 75:28]
-  assign io_Debug_DebugCsrWData = Cpu_io_Debug_DebugCsrWData; // @[SocTop.scala 76:28]
-  assign io_Debug_DebugExeValid = Cpu_io_Debug_DebugExeValid; // @[SocTop.scala 77:28]
-  assign io_Debug_DebugWData = Cpu_io_Debug_DebugWData; // @[SocTop.scala 79:28]
-  assign io_Debug_DebugMemRd_r = Cpu_io_Debug_DebugMemRd_r; // @[SocTop.scala 80:28]
-  assign io_DeBugAddrOk = SramAxi_io_DeBugAddrOk; // @[SocTop.scala 82:16]
-  assign io_DeBugDataOk = SramAxi_io_DeBugDataOk; // @[SocTop.scala 83:16]
-  assign io_DeBugRData = SramAxi_io_DeBugRData; // @[SocTop.scala 84:16]
+  assign io_Instr_PreIfInstr_inst_sram_en = Cpu_io_Instr_PreIfInstr_inst_sram_en; // @[SocTop.scala 68:43]
+  assign io_Instr_PreIfInstr_inst_sram_wen = 4'h0; // @[SocTop.scala 69:43]
+  assign io_Instr_PreIfInstr_inst_sram_addr = Cpu_io_Instr_PreIfInstr_inst_sram_addr; // @[SocTop.scala 70:43]
+  assign io_Instr_PreIfInstr_inst_sram_wdata = 32'h0; // @[SocTop.scala 71:43]
+  assign io_MemData_data_sram_en = DataMemSlave_io_MemData_data_sram_en; // @[SocTop.scala 74:31]
+  assign io_MemData_data_sram_wen = DataMemSlave_io_MemData_data_sram_wen; // @[SocTop.scala 75:31]
+  assign io_MemData_data_sram_addr = DataMemSlave_io_MemData_data_sram_addr; // @[SocTop.scala 76:31]
+  assign io_MemData_data_sram_wdata = DataMemSlave_io_MemData_data_sram_wdata; // @[SocTop.scala 77:31]
+  assign io_Led_Led = LedSlave_io_Led_Led; // @[SocTop.scala 80:18]
+  assign io_Debug_DebugInstr = Cpu_io_Debug_DebugInstr; // @[SocTop.scala 96:26]
+  assign io_Debug_DebugPc = Cpu_io_Debug_DebugPc; // @[SocTop.scala 97:26]
+  assign io_Debug_DebugIfValid = Cpu_io_Debug_DebugIfValid; // @[SocTop.scala 98:26]
+  assign io_Debug_DebugIfEn = Cpu_io_Debug_DebugIfEn; // @[SocTop.scala 99:26]
+  assign io_Debug_Debug_alu_op = Cpu_io_Debug_Debug_alu_op; // @[SocTop.scala 101:26]
+  assign io_Debug_Debug_data1 = Cpu_io_Debug_Debug_data1; // @[SocTop.scala 102:26]
+  assign io_Debug_Debug_data2 = Cpu_io_Debug_Debug_data2; // @[SocTop.scala 103:26]
+  assign io_Debug_Debug_mmu_en = Cpu_io_Debug_Debug_mmu_en; // @[SocTop.scala 104:26]
+  assign io_Debug_Debug_mmu_wen = Cpu_io_Debug_Debug_mmu_wen; // @[SocTop.scala 105:26]
+  assign io_Debug_Debug_mmu_op = Cpu_io_Debug_Debug_mmu_op; // @[SocTop.scala 106:26]
+  assign io_Debug_Debug_mmu_RData2 = Cpu_io_Debug_Debug_mmu_RData2; // @[SocTop.scala 107:26]
+  assign io_Debug_Debug_pcu_en = Cpu_io_Debug_Debug_pcu_en; // @[SocTop.scala 108:26]
+  assign io_Debug_Debug_pcu_op = Cpu_io_Debug_Debug_pcu_op; // @[SocTop.scala 109:26]
+  assign io_Debug_Debug_pcu_data1 = Cpu_io_Debug_Debug_pcu_data1; // @[SocTop.scala 110:26]
+  assign io_Debug_Debug_pcu_data2 = Cpu_io_Debug_Debug_pcu_data2; // @[SocTop.scala 111:26]
+  assign io_Debug_Debug_rd_r = Cpu_io_Debug_Debug_rd_r; // @[SocTop.scala 112:26]
+  assign io_Debug_Debug_csr_en = Cpu_io_Debug_Debug_csr_en; // @[SocTop.scala 113:26]
+  assign io_Debug_Debug_csr_op = Cpu_io_Debug_Debug_csr_op; // @[SocTop.scala 114:26]
+  assign io_Debug_Debug_csr_waddr = Cpu_io_Debug_Debug_csr_waddr; // @[SocTop.scala 115:26]
+  assign io_Debug_Debug_csr_data = Cpu_io_Debug_Debug_csr_data; // @[SocTop.scala 116:26]
+  assign io_Debug_Debug_csr_imm = Cpu_io_Debug_Debug_csr_imm; // @[SocTop.scala 117:26]
+  assign io_Debug_Debug_IdValid = Cpu_io_Debug_Debug_IdValid; // @[SocTop.scala 118:26]
+  assign io_Debug_DebugResult = Cpu_io_Debug_DebugResult; // @[SocTop.scala 121:28]
+  assign io_Debug_DebugRd_r = Cpu_io_Debug_DebugRd_r; // @[SocTop.scala 122:28]
+  assign io_Debug_DebugDataEn = Cpu_io_Debug_DebugDataEn; // @[SocTop.scala 123:28]
+  assign io_Debug_DebugDataWen = Cpu_io_Debug_DebugDataWen; // @[SocTop.scala 124:28]
+  assign io_Debug_DebugDataWdata = Cpu_io_Debug_DebugDataWdata; // @[SocTop.scala 125:28]
+  assign io_Debug_DebugDataSize = Cpu_io_Debug_DebugDataSize; // @[SocTop.scala 126:28]
+  assign io_Debug_DebugDataMemValid = Cpu_io_Debug_DebugDataMemValid; // @[SocTop.scala 127:28]
+  assign io_Debug_DebugLoadOp = Cpu_io_Debug_DebugLoadOp; // @[SocTop.scala 128:28]
+  assign io_Debug_DebugPcJump = Cpu_io_Debug_DebugPcJump; // @[SocTop.scala 129:28]
+  assign io_Debug_DebugNextPc = Cpu_io_Debug_DebugNextPc; // @[SocTop.scala 130:28]
+  assign io_Debug_DebugCsrWAddr = Cpu_io_Debug_DebugCsrWAddr; // @[SocTop.scala 131:28]
+  assign io_Debug_DebugCsrWData = Cpu_io_Debug_DebugCsrWData; // @[SocTop.scala 132:28]
+  assign io_Debug_DebugExeValid = Cpu_io_Debug_DebugExeValid; // @[SocTop.scala 133:28]
+  assign io_Debug_DebugWData = Cpu_io_Debug_DebugWData; // @[SocTop.scala 135:28]
+  assign io_Debug_DebugMemRd_r = Cpu_io_Debug_DebugMemRd_r; // @[SocTop.scala 136:28]
+  assign io_DeBugAddrOk = SramAxi_io_DeBugAddrOk; // @[SocTop.scala 138:16]
+  assign io_DeBugDataOk = SramAxi_io_DeBugDataOk; // @[SocTop.scala 139:16]
+  assign io_DeBugRData = SramAxi_io_DeBugRData; // @[SocTop.scala 140:16]
+  assign io_DebugRegState = SramAxi_io_DebugRegState; // @[SocTop.scala 142:19]
+  assign io_DebugArAddr = SramAxi_io_DebugArAddr; // @[SocTop.scala 143:19]
+  assign io_DebugArsize = SramAxi_io_DebugArsize; // @[SocTop.scala 144:19]
+  assign io_DebugArValid = SramAxi_io_DebugArValid; // @[SocTop.scala 145:19]
+  assign io_DebugAwAddr = SramAxi_io_DebugAwAddr; // @[SocTop.scala 146:19]
+  assign io_DebugAwsize = SramAxi_io_DebugAwsize; // @[SocTop.scala 147:19]
+  assign io_DebugAwValid = SramAxi_io_DebugAwValid; // @[SocTop.scala 148:19]
+  assign io_DebugWData = SramAxi_io_DebugWData; // @[SocTop.scala 149:19]
+  assign io_DebugWLast = SramAxi_io_DebugWLast; // @[SocTop.scala 150:19]
+  assign io_DebugWValid = SramAxi_io_DebugWValid; // @[SocTop.scala 151:19]
+  assign io_DebugWriteState = AxiMux_io_DebugWriteState; // @[SocTop.scala 153:20]
+  assign io_DebugReadState = AxiMux_io_DebugReadState; // @[SocTop.scala 154:20]
+  assign io_DebugAxiState = AxiApb_io_DebugAxiState; // @[SocTop.scala 83:18]
+  assign io_DebugApbState = AxiApb_io_DebugApbState; // @[SocTop.scala 84:18]
+  assign io_DebugPAddr = AxiApb_io_DebugPAddr; // @[SocTop.scala 85:18]
+  assign io_DebugPWrite = AxiApb_io_DebugPWrite; // @[SocTop.scala 86:18]
+  assign io_DebugPSel = AxiApb_io_DebugPSel; // @[SocTop.scala 87:18]
+  assign io_DebugPEnable = AxiApb_io_DebugPEnable; // @[SocTop.scala 88:18]
+  assign io_DebugPWData = AxiApb_io_DebugPWData; // @[SocTop.scala 89:18]
   assign Cpu_clock = clock;
   assign Cpu_reset = reset;
-  assign Cpu_io_Axi_DataMem_data_sram_rdata = SramAxi_io_Cpu_DataMem_data_sram_rdata; // @[SocTop.scala 19:15]
-  assign Cpu_io_Axi_DataMem_data_ok = SramAxi_io_Cpu_DataMem_data_ok; // @[SocTop.scala 19:15]
-  assign Cpu_io_Axi_DataMem_data_addr_ok = SramAxi_io_Cpu_DataMem_data_addr_ok; // @[SocTop.scala 19:15]
-  assign Cpu_io_Instr_InstrIf_inst_sram_rdata = io_Instr_InstrIf_inst_sram_rdata; // @[SocTop.scala 31:43]
+  assign Cpu_io_Axi_DataMem_data_sram_rdata = SramAxi_io_Cpu_DataMem_data_sram_rdata; // @[SocTop.scala 44:15]
+  assign Cpu_io_Axi_DataMem_data_ok = SramAxi_io_Cpu_DataMem_data_ok; // @[SocTop.scala 44:15]
+  assign Cpu_io_Axi_DataMem_data_addr_ok = SramAxi_io_Cpu_DataMem_data_addr_ok; // @[SocTop.scala 44:15]
+  assign Cpu_io_Instr_InstrIf_inst_sram_rdata = io_Instr_InstrIf_inst_sram_rdata; // @[SocTop.scala 72:43]
   assign SramAxi_clock = clock;
   assign SramAxi_reset = reset;
-  assign SramAxi_io_Cpu_ExeData_data_sram_en = Cpu_io_Axi_ExeData_data_sram_en; // @[SocTop.scala 19:15]
-  assign SramAxi_io_Cpu_ExeData_data_sram_wen = Cpu_io_Axi_ExeData_data_sram_wen; // @[SocTop.scala 19:15]
-  assign SramAxi_io_Cpu_ExeData_data_sram_addr = Cpu_io_Axi_ExeData_data_sram_addr; // @[SocTop.scala 19:15]
-  assign SramAxi_io_Cpu_ExeData_data_sram_wdata = Cpu_io_Axi_ExeData_data_sram_wdata; // @[SocTop.scala 19:15]
-  assign SramAxi_io_Cpu_ExeData_data_size = Cpu_io_Axi_ExeData_data_size; // @[SocTop.scala 19:15]
-  assign SramAxi_io_R_RData = DataMemSlave_io_R_RData; // @[SocTop.scala 23:18]
-  assign SramAxi_io_R_RLast = DataMemSlave_io_R_RLast; // @[SocTop.scala 23:18]
-  assign SramAxi_io_R_RValid = DataMemSlave_io_R_RValid; // @[SocTop.scala 23:18]
-  assign SramAxi_io_B_Bvalid = DataMemSlave_io_B_Bvalid; // @[SocTop.scala 25:18]
+  assign SramAxi_io_Cpu_ExeData_data_sram_en = Cpu_io_Axi_ExeData_data_sram_en; // @[SocTop.scala 44:15]
+  assign SramAxi_io_Cpu_ExeData_data_sram_wen = Cpu_io_Axi_ExeData_data_sram_wen; // @[SocTop.scala 44:15]
+  assign SramAxi_io_Cpu_ExeData_data_sram_addr = Cpu_io_Axi_ExeData_data_sram_addr; // @[SocTop.scala 44:15]
+  assign SramAxi_io_Cpu_ExeData_data_sram_wdata = Cpu_io_Axi_ExeData_data_sram_wdata; // @[SocTop.scala 44:15]
+  assign SramAxi_io_Cpu_ExeData_data_size = Cpu_io_Axi_ExeData_data_size; // @[SocTop.scala 44:15]
+  assign SramAxi_io_AR_ArReady = AxiMux_io_AxiMaster1_AR_ArReady; // @[SocTop.scala 46:18]
+  assign SramAxi_io_R_RData = AxiMux_io_AxiMaster1_R_RData; // @[SocTop.scala 48:18]
+  assign SramAxi_io_R_RLast = AxiMux_io_AxiMaster1_R_RLast; // @[SocTop.scala 48:18]
+  assign SramAxi_io_R_RValid = AxiMux_io_AxiMaster1_R_RValid; // @[SocTop.scala 48:18]
+  assign SramAxi_io_AW_AwReady = AxiMux_io_AxiMaster1_AW_AwReady; // @[SocTop.scala 47:18]
+  assign SramAxi_io_B_Bvalid = AxiMux_io_AxiMaster1_B_Bvalid; // @[SocTop.scala 50:18]
+  assign AxiMux_clock = clock;
+  assign AxiMux_reset = reset;
+  assign AxiMux_io_AxiMaster1_AR_ArAddr = SramAxi_io_AR_ArAddr; // @[SocTop.scala 46:18]
+  assign AxiMux_io_AxiMaster1_AR_ArValid = SramAxi_io_AR_ArValid; // @[SocTop.scala 46:18]
+  assign AxiMux_io_AxiMaster1_AW_AwAddr = SramAxi_io_AW_AwAddr; // @[SocTop.scala 47:18]
+  assign AxiMux_io_AxiMaster1_AW_AwSize = SramAxi_io_AW_AwSize; // @[SocTop.scala 47:18]
+  assign AxiMux_io_AxiMaster1_AW_AwValid = SramAxi_io_AW_AwValid; // @[SocTop.scala 47:18]
+  assign AxiMux_io_AxiMaster1_W_WData = SramAxi_io_W_WData; // @[SocTop.scala 49:18]
+  assign AxiMux_io_AxiMaster1_W_WLast = SramAxi_io_W_WLast; // @[SocTop.scala 49:18]
+  assign AxiMux_io_AxiMaster1_W_WValid = SramAxi_io_W_WValid; // @[SocTop.scala 49:18]
+  assign AxiMux_io_AxiSlave1_AR_ArReady = DataMemSlave_io_AR_ArReady; // @[SocTop.scala 53:28]
+  assign AxiMux_io_AxiSlave1_R_RData = DataMemSlave_io_R_RData; // @[SocTop.scala 55:28]
+  assign AxiMux_io_AxiSlave1_R_RLast = DataMemSlave_io_R_RLast; // @[SocTop.scala 55:28]
+  assign AxiMux_io_AxiSlave1_R_RValid = DataMemSlave_io_R_RValid; // @[SocTop.scala 55:28]
+  assign AxiMux_io_AxiSlave1_AW_AwReady = DataMemSlave_io_AW_AwReady; // @[SocTop.scala 54:28]
+  assign AxiMux_io_AxiSlave1_B_Bvalid = DataMemSlave_io_B_Bvalid; // @[SocTop.scala 57:28]
+  assign AxiMux_io_AxiSlave2_AR_ArReady = AxiApb_io_AR_ArReady; // @[SocTop.scala 59:28]
+  assign AxiMux_io_AxiSlave2_R_RData = AxiApb_io_R_RData; // @[SocTop.scala 61:28]
+  assign AxiMux_io_AxiSlave2_R_RLast = AxiApb_io_R_RLast; // @[SocTop.scala 61:28]
+  assign AxiMux_io_AxiSlave2_R_RValid = AxiApb_io_R_RValid; // @[SocTop.scala 61:28]
+  assign AxiMux_io_AxiSlave2_AW_AwReady = AxiApb_io_AW_AwReady; // @[SocTop.scala 60:28]
+  assign AxiMux_io_AxiSlave2_B_Bvalid = AxiApb_io_B_Bvalid; // @[SocTop.scala 63:28]
+  assign AxiApb_clock = clock;
+  assign AxiApb_reset = reset;
+  assign AxiApb_io_Apb_PRData = LedSlave_io_Apb_PRData; // @[SocTop.scala 65:28]
+  assign AxiApb_io_Apb_PReady = LedSlave_io_Apb_PReady; // @[SocTop.scala 65:28]
+  assign AxiApb_io_AR_ArAddr = AxiMux_io_AxiSlave2_AR_ArAddr; // @[SocTop.scala 59:28]
+  assign AxiApb_io_AR_ArValid = AxiMux_io_AxiSlave2_AR_ArValid; // @[SocTop.scala 59:28]
+  assign AxiApb_io_AW_AwAddr = AxiMux_io_AxiSlave2_AW_AwAddr; // @[SocTop.scala 60:28]
+  assign AxiApb_io_AW_AwValid = AxiMux_io_AxiSlave2_AW_AwValid; // @[SocTop.scala 60:28]
+  assign AxiApb_io_W_WData = AxiMux_io_AxiSlave2_W_WData; // @[SocTop.scala 62:28]
+  assign AxiApb_io_W_WLast = AxiMux_io_AxiSlave2_W_WLast; // @[SocTop.scala 62:28]
+  assign AxiApb_io_W_WValid = AxiMux_io_AxiSlave2_W_WValid; // @[SocTop.scala 62:28]
+  assign AxiApb_io_B_Bready = AxiMux_io_AxiSlave2_B_Bready; // @[SocTop.scala 63:28]
+  assign LedSlave_clock = clock;
+  assign LedSlave_reset = reset;
+  assign LedSlave_io_Apb_PAddr = AxiApb_io_Apb_PAddr; // @[SocTop.scala 65:28]
+  assign LedSlave_io_Apb_PWrite = AxiApb_io_Apb_PWrite; // @[SocTop.scala 65:28]
+  assign LedSlave_io_Apb_PSel = AxiApb_io_Apb_PSel; // @[SocTop.scala 65:28]
+  assign LedSlave_io_Apb_PEnable = AxiApb_io_Apb_PEnable; // @[SocTop.scala 65:28]
+  assign LedSlave_io_Apb_PWData = AxiApb_io_Apb_PWData; // @[SocTop.scala 65:28]
   assign DataMemSlave_clock = clock;
   assign DataMemSlave_reset = reset;
-  assign DataMemSlave_io_MemData_data_sram_rdata = io_MemData_data_sram_rdata; // @[SocTop.scala 37:45]
-  assign DataMemSlave_io_AR_ArAddr = SramAxi_io_AR_ArAddr; // @[SocTop.scala 21:18]
-  assign DataMemSlave_io_AR_ArValid = SramAxi_io_AR_ArValid; // @[SocTop.scala 21:18]
-  assign DataMemSlave_io_AW_AwAddr = SramAxi_io_AW_AwAddr; // @[SocTop.scala 22:18]
-  assign DataMemSlave_io_AW_Awize = SramAxi_io_AW_Awize; // @[SocTop.scala 22:18]
-  assign DataMemSlave_io_AW_AwValid = SramAxi_io_AW_AwValid; // @[SocTop.scala 22:18]
-  assign DataMemSlave_io_W_WData = SramAxi_io_W_WData; // @[SocTop.scala 24:18]
-  assign DataMemSlave_io_W_WLast = SramAxi_io_W_WLast; // @[SocTop.scala 24:18]
-  assign DataMemSlave_io_W_WValid = SramAxi_io_W_WValid; // @[SocTop.scala 24:18]
+  assign DataMemSlave_io_MemData_data_sram_rdata = io_MemData_data_sram_rdata; // @[SocTop.scala 78:45]
+  assign DataMemSlave_io_AR_ArAddr = AxiMux_io_AxiSlave1_AR_ArAddr; // @[SocTop.scala 53:28]
+  assign DataMemSlave_io_AR_ArValid = AxiMux_io_AxiSlave1_AR_ArValid; // @[SocTop.scala 53:28]
+  assign DataMemSlave_io_AW_AwAddr = AxiMux_io_AxiSlave1_AW_AwAddr; // @[SocTop.scala 54:28]
+  assign DataMemSlave_io_AW_AwSize = AxiMux_io_AxiSlave1_AW_AwSize; // @[SocTop.scala 54:28]
+  assign DataMemSlave_io_AW_AwValid = AxiMux_io_AxiSlave1_AW_AwValid; // @[SocTop.scala 54:28]
+  assign DataMemSlave_io_W_WData = AxiMux_io_AxiSlave1_W_WData; // @[SocTop.scala 56:28]
+  assign DataMemSlave_io_W_WLast = AxiMux_io_AxiSlave1_W_WLast; // @[SocTop.scala 56:28]
+  assign DataMemSlave_io_W_WValid = AxiMux_io_AxiSlave1_W_WValid; // @[SocTop.scala 56:28]
+  assign DataMemSlave_io_B_Bready = AxiMux_io_AxiSlave1_B_Bready; // @[SocTop.scala 57:28]
 endmodule

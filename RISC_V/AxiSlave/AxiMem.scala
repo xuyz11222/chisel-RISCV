@@ -42,7 +42,7 @@ class DataMemSlave extends Module{
   val AwId     =io.AW.AwId     
   val AwAddr   =io.AW.AwAddr   
   val AwLen    =io.AW.AwLen    
-  val Awsize   =io.AW.Awize    
+  val Awsize   =io.AW.AwSize    
   val AwBurst  =io.AW.AwBurst  
   val AwLock   =io.AW.AwLock   
   val AwCache  =io.AW.AwCache  

@@ -29,7 +29,7 @@ class AW extends Bundle{
    val AwId    = Output(UInt(4.W))
    val AwAddr = Output(UInt(32.W))
    val AwLen   = Output(UInt(8.W))
-   val Awize   = Output(UInt(3.W))
+   val AwSize   = Output(UInt(2.W))
    val AwBurst = Output(UInt(2.W))
    val AwLock  = Output(UInt(2.W))
    val AwCache = Output(UInt(4.W))
@@ -66,6 +66,17 @@ class AxiMasterAxi extends Module{
      val DeBugAddrOk =Output(Bool())
      val DeBugDataOk =Output(Bool())
      val DeBugRData  =Output(UInt(32.W))
+     
+  val DebugRegState  = Output(UInt(3.W))
+  val DebugArAddr    = Output(UInt(32.W))
+  val DebugArsize    = Output(UInt(2.W))
+  val DebugArValid   = Output(Bool())
+  val DebugAwAddr    = Output(UInt(32.W))
+  val DebugAwsize    = Output(UInt(2.W))
+  val DebugAwValid   = Output(Bool())
+  val DebugWData     = Output(UInt(32.W))
+  val DebugWLast     = Output(Bool())
+  val DebugWValid    = Output(Bool())
 
     }
     )
@@ -93,9 +104,10 @@ val DataSize     = io.Cpu.ExeData.data_size
 
   val IDLE     = 0.U(3.W)
   val WRITEREQ = 1.U(3.W)
-  val WRITE    = 2.U(3.W)
-  val READREQ  = 3.U(3.W)
-  val READ     = 4.U(3.W)
+  val B        = 2.U(3.W)
+  val WRITE    = 3.U(3.W)
+  val READREQ  = 4.U(3.W)
+  val READ     = 5.U(3.W)
 
   
   val RegState  = RegInit(IDLE)
@@ -104,7 +116,7 @@ val DataSize     = io.Cpu.ExeData.data_size
   val ArValid   = RegInit(false.B)
 
   val AwAddr    = RegInit(0.U(32.W))
-  val Awsize     = RegInit(0.U(2.W))
+  val Awsize    = RegInit(0.U(2.W))
   val AwValid   = RegInit(false.B)
 
   val WData     = RegInit(0.U(32.W))
@@ -133,7 +145,7 @@ val DataSize     = io.Cpu.ExeData.data_size
         ArValid  := false.B
 
     }.elsewhen(DataMemEn && !DataMemWen){
-        RegState := READ
+        RegState := READREQ
         ArAddr   := DataMemAddr
         Arsize   := DataSize
         ArValid  := true.B
@@ -155,8 +167,16 @@ val DataSize     = io.Cpu.ExeData.data_size
 
 
   }
-  
   is(WRITEREQ){
+    when(AwReady){
+      RegState := B
+      
+    }.otherwise{
+      RegState := WRITEREQ
+
+    }
+   }
+  is(B){
     when(Bvalid){
       RegState := WRITE
       AwAddr   := 0.U(32.W)
@@ -165,7 +185,7 @@ val DataSize     = io.Cpu.ExeData.data_size
       
 
     }.otherwise{
-      RegState := WRITEREQ
+      RegState := B
 
     }
 
@@ -179,7 +199,19 @@ val DataSize     = io.Cpu.ExeData.data_size
      WValid   := true.B
      RegState := IDLE
   }
+   is(READREQ){
+    when(ArReady){
+      RegState := READ
+      ArAddr   := 0.U(32.W)
+      Arsize   := 0.U(2.W)
+      ArValid  := false.B
+      
+    }.otherwise{
+      RegState := READREQ
 
+    }
+
+  }
   is(READ){
       
       when(RLast){
@@ -211,7 +243,7 @@ io.AR.ArValid  := ArValid
 io.AW.AwId     := 1.U(4.W)
 io.AW.AwAddr   := AwAddr
 io.AW.AwLen    := 0.U(8.W)
-io.AW.Awize    := Awsize
+io.AW.AwSize    := Awsize
 io.AW.AwBurst  := 1.U(2.W)
 io.AW.AwLock   := 0.U(2.W)
 io.AW.AwCache  := 0.U(4.W)
@@ -233,7 +265,16 @@ io.Cpu.DataMem.data_sram_rdata  := RData
 io.DeBugAddrOk :=AddrOk
 io.DeBugDataOk :=DataOk
 io.DeBugRData  :=RData 
-
+io.DebugRegState  := RegState 
+io.DebugArAddr    := ArAddr   
+io.DebugArsize    := Arsize   
+io.DebugArValid   := ArValid  
+io.DebugAwAddr    := AwAddr   
+io.DebugAwsize    := Awsize   
+io.DebugAwValid   := AwValid  
+io.DebugWData     := WData    
+io.DebugWLast     := WLast    
+io.DebugWValid    := WValid   
   
 
 

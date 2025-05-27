@@ -1,3 +1,6 @@
+import chisel3._
+import chisel3.util._
+
 class ApbSlave extends Bundle{
     val PAddr     = Input(UInt(32.W))
     val PWrite    = Input(Bool())
@@ -11,19 +14,19 @@ class ApbSlave extends Bundle{
 }
 
 class Led extends Bundle{
-
+   
     val Led    = Output(UInt(8.W))
 
 }
 
-class LedSlave extends Bundle{
-    val io = IO(new Bundle{
+class LedSlave extends Module{
+    val io = IO(new Bundle(){
            val Apb = new ApbSlave()
            val Led = new Led()
         }
     )
 
-    val LedAddr   = "h30000000".U
+    val LedAddr   = "h20000000".U
 
     val PAddr     = io.Apb.PAddr   
     val PWrite    = io.Apb.PWrite  
@@ -50,7 +53,7 @@ class LedSlave extends Bundle{
 
         }.otherwise{
           PSlver := true.B
-          PReady := true.B
+          PReady := false.B
           PRData := 0.U(32.W)
 
         }
@@ -61,7 +64,11 @@ class LedSlave extends Bundle{
        PSlver := false.B
 
     }
-    
+
+    io.Apb.PRData    := PRData 
+    io.Apb.PReady    := PReady 
+    io.Apb.PSlver    := PSlver 
+    io.Led.Led       := Led
     
      
 
